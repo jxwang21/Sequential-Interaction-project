@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Puzzle Paper</title>
+  <meta name="description" content="A four-step sequential interaction prototype played on one persistent sheet of paper.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/scenes.css">
+</head>
+<body>
+  <main class="paper" id="paper" data-step="1" data-phase="playing" aria-label="Puzzle paper">
+    <header class="paper-head">
+      <h1 class="step-label" id="step-label">Step 1 of 4</h1>
+      <button class="restart" id="restart" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg>
+        <span>Restart</span>
+      </button>
+    </header>
+
+    <ol class="progress" id="progress" aria-label="Progress">
+      <li data-state="current" aria-current="step"><span class="node"><b>1</b></span><span class="sr">Step 1, current</span></li>
+      <li data-state="locked"><span class="node"><b>2</b></span><span class="sr">Step 2, locked</span></li>
+      <li data-state="locked"><span class="node"><b>3</b></span><span class="sr">Step 3, locked</span></li>
+      <li data-state="locked"><span class="node"><b>4</b></span><span class="sr">Step 4, locked</span></li>
+    </ol>
+
+    <p class="hint" id="hint" role="status" aria-live="polite"></p>
+
+    <section class="stage-host" id="scene-host" aria-label="Current action"></section>
+
+    <div class="status" id="status" data-mode="none">
+      <p class="badge" id="badge" role="status" aria-live="polite"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Completed</p>
+      <div class="ending" id="ending">
+        <p class="ending-text" id="ending-text">All steps completed</p>
+        <button class="again" id="again" type="button" tabindex="-1">Start again</button>
+      </div>
+    </div>
+
+    <footer class="stamps" id="stamps" aria-label="Completion stamps">
+      <span class="stamp" data-n="1" aria-label="Step 1 stamp, not yet earned">
+        <svg viewBox="22 26 160 44" aria-hidden="true"><path d="M59.6 36 H170 V58 H160 V44 H148 V62 H138 V44 H59.6 A20 20 0 1 1 59.6 36 Z M32 40 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0 Z" transform="translate(0 -4)"/></svg>
+        <i>1</i>
+      </span>
+      <span class="stamp" data-n="2" aria-label="Step 2 stamp, not yet earned">
+        <svg viewBox="0 0 40 52" aria-hidden="true"><rect x="6" y="4" width="28" height="44" rx="2"/><path d="M12 10 H28 V42 H12 Z"/><path d="M12 10 L6 14 V44 L12 42"/></svg>
+        <i>2</i>
+      </span>
+      <span class="stamp" data-n="3" aria-label="Step 3 stamp, not yet earned">
+        <svg viewBox="-24 -24 48 48" aria-hidden="true"><path d="M-14 16 V-16 L0 2 L14 -16 V16"/></svg>
+        <i>3</i>
+      </span>
+      <span class="stamp" data-n="4" aria-label="Step 4 stamp, not yet earned">
+        <svg viewBox="10 4 100 150" aria-hidden="true"><rect x="56" y="10" width="8" height="36" rx="1"/><polygon points="20,52 100,52 60,148"/><ellipse cx="60" cy="52" rx="40" ry="10"/></svg>
+        <i>4</i>
+      </span>
+    </footer>
+  </main>
+
+  <script src="js/scenes/scene1.js"></script>
+  <script src="js/scenes/scene2.js"></script>
+  <script src="js/scenes/scene3.js"></script>
+  <script src="js/scenes/scene4.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
