@@ -1,0 +1,10 @@
+{
+  "name": "study-01-select-the-frames",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Interaction study 1: press three frames in the order shown by a clock reading 3:17 to open the clock.",
+  "scripts": {
+    "start": "npx --yes serve -l 3000 ."
+  },
+  "dependencies": {}
+}

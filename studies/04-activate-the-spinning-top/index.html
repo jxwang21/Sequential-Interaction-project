@@ -1,0 +1,219 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Activate the spinning top</title>
+<style>
+/* Layout: one centred SVG scene (clock above, top in upper centre, three marks below) with an in-flow reset button. */
+:root{
+  --bg:#121212; --ink:#dcdcdc; --line:#9a9a9a; --line-dim:#5e5e5e; --fill:#1d1d1d; --fill-in:#161616;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+  padding-inline:16px; padding-block:12px; box-sizing:border-box; overflow-x:hidden;
+  -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none;
+}
+.scene{
+  --s:min(calc((100vw - 32px) / 360), calc((100svh - 108px) / 400), 1.6px);
+  width:calc(360 * var(--s)); height:calc(400 * var(--s)); display:block; flex:none; touch-action:none; overflow:visible;
+}
+.scene *{vector-effect:non-scaling-stroke}
+.scene{fill:none;stroke:var(--line);stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}
+
+.mark{--eo:#9a9a9a;--ei:#5e5e5e;--dg:#dcdcdc;--face:#1d1d1d;--plate:#161616;--hl:#565656;--sh:#060606;cursor:pointer;outline:none}
+.mark .m-in{transition:transform 50ms linear}
+.mark .m-face{fill:var(--face);stroke:var(--eo);transition:stroke 50ms linear,fill 50ms linear}
+.mark .m-hl{stroke:var(--hl)} .mark .m-sh{stroke:var(--sh)}
+.mark .m-plate{fill:var(--plate);stroke:var(--ei);transition:stroke 50ms linear,fill 50ms linear}
+.mark .m-digit{stroke:var(--dg);transition:stroke 50ms linear}
+.mark .m-shadow{fill:#000;stroke:none;opacity:.6;transition:opacity 50ms linear}
+.mark .hit{fill:transparent;stroke:none}
+@media (hover:hover){
+  .scene:not(.locked) .mark:not(.active):hover{--eo:#e4e4e4;--ei:#a8a8a8}
+}
+.mark:focus-visible:not(.active){--eo:#e4e4e4;--ei:#a8a8a8}
+.mark.down{--eo:#fff;--ei:#d0d0d0}
+.mark.down .m-in{transform:translate(2px,2px)}
+.mark.down .m-shadow{opacity:.25}
+.mark.active{--eo:#f4f4f4;--ei:#fff;--dg:#fff;--plate:#1b1b1b}
+.mark.pulse{--eo:#fff;--ei:#fff;--dg:#fff;--plate:#3c3c3c;--face:#2a2a2a;filter:drop-shadow(0 0 5px rgba(255,255,255,.6))}
+.mark.error{--eo:#2c2c2c;--ei:#262626;--dg:#505050;--face:#090909;--plate:#060606;--hl:#1a1a1a;--sh:#030303}
+.mark.error .m-face,.mark.error .m-plate,.mark.error .m-digit{transition:none}
+
+.reset{
+  flex:none; width:44px; height:44px; border-radius:50%; padding:0; cursor:pointer;
+  background:var(--fill); border:1.5px solid var(--line-dim); color:var(--line);
+  display:grid; place-items:center; box-shadow:inset 1px 1px 0 #3a3a3a, inset -1px -1px 0 #060606;
+  transition:border-color 60ms linear,color 60ms linear;
+}
+.reset:hover,.reset:focus-visible{border-color:#e4e4e4;color:#e4e4e4;outline:none}
+.reset:active{transform:translate(1px,1px)}
+.reset svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+</style>
+
+<svg class="scene" id="scene" viewBox="0 0 360 400" role="img" aria-label="A stationary spinning top above three numbered marks">
+  <defs>
+    <filter id="soft2" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2"/></filter>
+    <filter id="soft3" x="-30%" y="-100%" width="160%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
+    <filter id="soft25" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.5"/></filter>
+    <clipPath id="coneclip"><polygon points="20,52 100,52 60,148"/></clipPath>
+  </defs>
+
+  <!-- clock showing 3:17 -->
+  <g transform="translate(132 4) scale(.8)">
+    <circle cx="63" cy="64" r="52" fill="#000" stroke="none" opacity=".6" filter="url(#soft25)"/>
+    <circle cx="60" cy="60" r="52" fill="#1d1d1d"/>
+    <path d="M12 60 A48 48 0 0 1 60 12" stroke="#565656"/>
+    <path d="M108 60 A48 48 0 0 1 60 108" stroke="#060606"/>
+    <circle cx="60" cy="60" r="43" fill="#161616" stroke="#5e5e5e"/>
+    <line x1="60" y1="19" x2="60" y2="26"/>
+    <line x1="60" y1="19" x2="60" y2="26" transform="rotate(90 60 60)"/>
+    <line x1="60" y1="19" x2="60" y2="26" transform="rotate(180 60 60)"/>
+    <line x1="60" y1="19" x2="60" y2="26" transform="rotate(270 60 60)"/>
+    <rect x="27" y="43" width="66" height="34" rx="3" fill="#0d0d0d" stroke="#5e5e5e"/>
+    <g transform="translate(60 60) scale(.75) translate(-120 -83)" stroke="#dcdcdc">
+      <path d="M85 66 H103 V100 H85 M92 83 H103"/>
+      <circle cx="114" cy="76" r="1.8" fill="#dcdcdc" stroke="none"/>
+      <circle cx="114" cy="90" r="1.8" fill="#dcdcdc" stroke="none"/>
+      <path d="M126 66 V100 M126 66 L120 72"/>
+      <path d="M137 66 H155 V100"/>
+    </g>
+  </g>
+
+  <!-- top with contact shadow; tip at (180,256) -->
+  <g transform="translate(120 108)">
+    <ellipse cx="60" cy="152" rx="38" ry="8" fill="#000" stroke="none" opacity=".55" filter="url(#soft3)"/>
+    <g id="top">
+      <rect x="56" y="10" width="8" height="36" rx="1" fill="#1d1d1d"/>
+      <g id="top-body">
+        <polygon points="20,52 100,52 60,148" fill="#1d1d1d"/>
+        <g clip-path="url(#coneclip)" stroke="none">
+          <rect id="shine" x="-3" y="52" width="6" height="96" fill="#fff" opacity="0"/>
+          <rect id="dusk" x="-5" y="52" width="10" height="96" fill="#000" opacity="0"/>
+        </g>
+        <path d="M24 60 L58 136" stroke="#565656"/>
+        <path d="M31 70 Q60 82 89 70" stroke="#5e5e5e"/>
+        <ellipse id="top-mark" cx="76" cy="81" rx="4.5" ry="4.5" fill="#2e2e2e" stroke="#f2f2f2"/>
+      </g>
+      <ellipse cx="60" cy="52" rx="40" ry="10" fill="#161616"/>
+    </g>
+  </g>
+
+  <g id="marks"></g>
+</svg>
+
+<button class="reset" id="reset" type="button" aria-label="Reset">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.5h4.5"/></svg>
+</button>
+
+<script>
+(function(){
+  var SEQ=[3,1,7], ORDER=[1,7,3];
+  var DIGIT={1:"M44 28 V60 M36 36 L44 28",7:"M32 28 H56 L42 60",3:"M32 28 H56 V60 H32 M40 44 H56"};
+  var NS="http://www.w3.org/2000/svg";
+  var scene=document.getElementById("scene"), host=document.getElementById("marks");
+  var marks=[];
+  ORDER.forEach(function(n,i){
+    var g=document.createElementNS(NS,"g");
+    g.setAttribute("class","mark"); g.setAttribute("data-n",n);
+    g.setAttribute("transform","translate("+(80+i*100-44)+" 296)");
+    g.setAttribute("tabindex","0"); g.setAttribute("role","button"); g.setAttribute("aria-label","Mark "+n);
+    g.innerHTML=
+      '<rect class="m-shadow" x="11" y="12" width="76" height="76" rx="3" filter="url(#soft2)"/>'+
+      '<g class="m-in">'+
+        '<rect class="m-face" x="6" y="6" width="76" height="76" rx="3"/>'+
+        '<path class="m-hl" d="M9 79 V9 H79"/><path class="m-sh" d="M79 9 V79 H9"/>'+
+        '<rect class="m-plate" x="15" y="15" width="58" height="58" rx="2"/>'+
+        '<path class="m-digit" d="'+DIGIT[n]+'"/>'+
+      '</g>'+
+      '<rect class="hit" x="6" y="6" width="76" height="76"/>';
+    host.appendChild(g); marks.push(g);
+  });
+
+  var mark=document.getElementById("top-mark"), shine=document.getElementById("shine"), dusk=document.getElementById("dusk");
+  var U0=1.2, R=16/Math.sin(U0), C0=Math.cos(U0), WMAX=7;
+  var phi=0, raf=0, t0=0, last=0, p=0, locked=false, pressing=null, timers=[];
+
+  function later(fn,ms){var t=setTimeout(function(){timers=timers.filter(function(x){return x!==t});fn()},ms);timers.push(t)}
+
+  function draw(ph,ramp){
+    var u=U0+ph, c=Math.cos(u), f=c>0?Math.min(1,c/C0):0;
+    mark.setAttribute("cx",60+R*Math.sin(u));
+    mark.setAttribute("cy",81+2.5*(c-C0));
+    mark.setAttribute("rx",Math.max(.01,4.5*f));
+    mark.setAttribute("opacity",f>0.04?1:0);
+    var a=u+.9;
+    shine.setAttribute("x",60+30*Math.sin(a)-3);
+    shine.setAttribute("opacity",.15*Math.max(0,Math.cos(a))*ramp);
+    var b=a+Math.PI;
+    dusk.setAttribute("x",60+30*Math.sin(b)-5);
+    dusk.setAttribute("opacity",.3*Math.max(0,Math.cos(b))*ramp);
+  }
+  function restoreTop(){
+    mark.setAttribute("cx",76); mark.setAttribute("cy",81); mark.setAttribute("rx",4.5); mark.setAttribute("opacity",1);
+    shine.setAttribute("opacity",0); dusk.setAttribute("opacity",0);
+  }
+  function frame(t){
+    if(!t0){t0=last=t}
+    var dt=Math.min(.05,(t-last)/1000); last=t;
+    var q=Math.min(1,(t-t0)/600), w=WMAX*(1-(1-q)*(1-q));
+    phi+=w*dt;
+    draw(phi,Math.min(1,(t-t0)/300));
+    raf=requestAnimationFrame(frame);
+  }
+  function startSpin(){t0=0;phi=0;raf=requestAnimationFrame(frame)}
+
+  function choose(m,n){
+    if(locked||m.classList.contains("active"))return;
+    if(n===SEQ[p]){
+      m.classList.add("active"); p++;
+      if(p===SEQ.length){
+        locked=true; scene.classList.add("locked"); m.classList.add("pulse");
+        startSpin(); later(function(){m.classList.remove("pulse")},140);
+      }
+    }else{
+      locked=true; scene.classList.add("locked"); m.classList.add("error");
+      later(function(){
+        marks.forEach(function(x){x.classList.remove("active","error","down")});
+        p=0; locked=false; scene.classList.remove("locked");
+      },250);
+    }
+  }
+
+  marks.forEach(function(m){
+    var n=+m.getAttribute("data-n"), hit=m.querySelector(".hit");
+    function inside(e){var r=hit.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom}
+    m.addEventListener("pointerdown",function(e){
+      if(locked||m.classList.contains("active")||(e.pointerType==="mouse"&&e.button!==0))return;
+      pressing=m; m.classList.add("down");
+      try{m.setPointerCapture(e.pointerId)}catch(_){}
+      e.preventDefault();
+    });
+    m.addEventListener("pointermove",function(e){if(pressing===m)m.classList.toggle("down",inside(e))});
+    m.addEventListener("pointerup",function(e){
+      if(pressing!==m)return;
+      pressing=null; var ok=inside(e); m.classList.remove("down");
+      if(ok)choose(m,n);
+    });
+    m.addEventListener("pointercancel",function(){if(pressing===m)pressing=null;m.classList.remove("down")});
+    m.addEventListener("contextmenu",function(e){e.preventDefault()});
+    m.addEventListener("keydown",function(e){
+      if((e.key==="Enter"||e.key===" ")&&!e.repeat&&!locked&&!m.classList.contains("active")){m.classList.add("down");e.preventDefault()}
+    });
+    m.addEventListener("keyup",function(e){
+      if((e.key==="Enter"||e.key===" ")&&m.classList.contains("down")){m.classList.remove("down");choose(m,n)}
+    });
+    m.addEventListener("blur",function(){if(pressing!==m)m.classList.remove("down")});
+  });
+
+  document.getElementById("reset").addEventListener("click",function(){
+    timers.forEach(clearTimeout); timers=[];
+    cancelAnimationFrame(raf); raf=0; t0=0; phi=0;
+    restoreTop();
+    marks.forEach(function(x){x.classList.remove("active","error","down","pulse")});
+    pressing=null; p=0; locked=false; scene.classList.remove("locked");
+  });
+})();
+</script>
+
+</body></html>

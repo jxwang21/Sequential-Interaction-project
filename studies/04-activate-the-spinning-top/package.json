@@ -1,0 +1,10 @@
+{
+  "name": "study-04-activate-the-spinning-top",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Interaction study 4: press three numbered marks in the order shown by a clock reading 3:17 to set a spinning top in motion.",
+  "scripts": {
+    "start": "npx --yes serve -l 3000 ."
+  },
+  "dependencies": {}
+}
