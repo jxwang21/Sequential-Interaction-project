@@ -1,0 +1,364 @@
+/* ===== Step 1: ported from studies/01-select-the-frames (rules prefixed with .s1) ===== */
+.s1 .stage{box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 2);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;}
+.s1 svg{fill: none; stroke: var(--line); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; display: block;}
+.s1 svg *{vector-effect: non-scaling-stroke;}
+.s1 .clock{position: relative;
+  flex: none;
+  width: calc(var(--u) * 9);
+  aspect-ratio: 1;
+  max-width: 100%;
+  perspective: calc(var(--u) * 30);}
+.s1 .clock svg{position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none;}
+.s1 .c-shadow{fill: var(--shade); stroke: none; opacity: .55;}
+.s1 .c-case{fill: var(--panel); stroke: var(--line);}
+.s1 .c-hi{stroke: var(--bevel-hi);}
+.s1 .c-lo{stroke: var(--bevel-lo);}
+.s1 .c-dial{fill: var(--panel-in); stroke: var(--line-dim);}
+.s1 .c-tick{stroke: var(--line);}
+.s1 .c-hand{stroke: var(--lit);}
+.s1 .c-hub{fill: var(--panel-in); stroke: var(--lit);}
+.s1 .c-digit{stroke: var(--lit);}
+.s1 .c-colon{fill: var(--lit); stroke: none;}
+.s1 .c-pin{fill: var(--panel); stroke: var(--line);}
+.s1 .c-niche{fill: var(--niche); stroke: var(--line);}
+.s1 .c-niche-in{stroke: var(--line-dim);}
+.s1 .key{opacity: 0; transition: opacity .2s ease;}
+.s1 .key-shape{fill: var(--mark-fill); fill-rule: evenodd; stroke: var(--lit);}
+.s1 .clock.open .key{opacity: 1; transition: opacity .8s ease .25s;}
+.s1 .cover{transform-origin: 11.7% 50%;
+  transform: rotateY(0deg);
+  transition: transform .6s ease-in-out;
+  will-change: transform;}
+.s1 .clock.open .cover{transform: rotateY(-104deg); transition: transform 1s cubic-bezier(.5, 0, .3, 1);}
+.s1 .glass{fill: #fff; fill-opacity: .05; stroke: var(--line);}
+.s1 .glare{stroke: var(--line-hi); opacity: .55;}
+.s1 .lug{fill: var(--panel); stroke: var(--line);}
+.s1 .row{display: flex; gap: calc(var(--u) * .6); flex: none;}
+.s1 .frame{--c-fill: var(--panel);
+  --c-edge: var(--line);
+  --c-inner: var(--line-dim);
+  --c-hi: var(--bevel-hi);
+  --c-lo: var(--bevel-lo);
+  --c-plate: var(--panel-in);
+  --c-mark: var(--mark);
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  flex: none;
+  width: calc(var(--u) * 5);
+  aspect-ratio: 5 / 6;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;}
+.s1 .stage.is-locked .frame,
+.s1 .frame.on{cursor: default;}
+.s1 .frame:focus-visible{outline: 1.5px solid var(--lit); outline-offset: 4px;}
+.s1 .frame svg{width: 100%; height: 100%; overflow: visible;}
+.s1 .f-body,
+.s1 .f-plate{transition: transform .9s ease-in-out;}
+.s1 .f-shadow{fill: var(--shade); stroke: none; opacity: .6; transition: opacity .9s ease-in-out, transform .9s ease-in-out;}
+.s1 .f-outer,
+.s1 .f-inner,
+.s1 .f-hi,
+.s1 .f-lo,
+.s1 .symbols *{transition: fill .6s ease, stroke .6s ease, opacity .6s ease;}
+.s1 .f-outer{fill: var(--c-fill); stroke: var(--c-edge);}
+.s1 .f-hi{stroke: var(--c-hi);}
+.s1 .f-lo{stroke: var(--c-lo);}
+.s1 .f-inner{fill: var(--c-plate); stroke: var(--c-inner);}
+.s1 .dot{fill: var(--mark-fill); stroke: var(--c-mark);}
+.s1 .tri{fill: var(--mark-fill); stroke: var(--c-mark);}
+.s1 .eye-w{fill: none; stroke: var(--c-mark);}
+.s1 .eye-i{fill: var(--mark-fill); stroke: var(--c-mark);}
+.s1 .eye-p{fill: var(--c-mark); stroke: none;}
+@media (hover: hover){
+.s1 .stage:not(.is-locked) .frame:not(.on):hover{--c-edge: var(--line-hi);}
+}
+.s1 .frame.down{--c-edge: var(--line-hi); --c-fill: #232323;}
+.s1 .frame.down .f-outer,
+.s1 .frame.down .f-inner{transition: fill .08s ease, stroke .08s ease;}
+.s1 .frame.down .f-body{transform: translate(2.5px, 3.5px); transition: transform .25s cubic-bezier(.3, 0, .35, 1);}
+.s1 .frame.down .f-shadow{opacity: .3; transform: translate(-1.5px, -2px); transition: opacity .25s ease-out, transform .25s ease-out;}
+.s1 .frame.err{--c-fill: #0b0b0b; --c-plate: #090909; --c-edge: #474747; --c-inner: #2e2e2e; --c-hi: #0b0b0b; --c-lo: #0b0b0b; --c-mark: #4a4a4a;}
+.s1 .frame.err .f-outer,
+.s1 .frame.err .f-inner,
+.s1 .frame.err .symbols *{transition: fill .1s ease, stroke .1s ease;}
+.s1 .frame.err .f-body{transform: translate(2.5px, 3.5px); transition: transform .25s cubic-bezier(.3, 0, .35, 1);}
+.s1 .frame.err .f-shadow{opacity: .3; transform: translate(-1.5px, -2px);}
+.s1 .frame.on{--c-inner: var(--lit); --c-hi: var(--bevel-lo); --c-lo: var(--bevel-hi); --c-plate: #131313;}
+.s1 .frame.on .f-outer,
+.s1 .frame.on .f-inner{transition: fill .28s ease, stroke .28s ease;}
+.s1 .frame.on .f-body{transform: translate(4px, 6px); transition: transform .28s cubic-bezier(.4, 0, .2, 1);}
+.s1 .frame.on .f-plate{transform: translate(1px, 1.5px); transition: transform .28s cubic-bezier(.4, 0, .2, 1);}
+.s1 .frame.on .f-shadow{opacity: .12; transform: translate(-3px, -4px); transition: opacity .28s ease-out, transform .28s ease-out;}
+@media (hover: hover){
+}
+@media (prefers-reduced-motion: reduce){
+.s1 .f-body,
+.s1 .f-plate,
+.s1 .f-shadow,
+.s1 .f-outer,
+.s1 .f-inner,
+.s1 .f-hi,
+.s1 .f-lo,
+.s1 .symbols *,
+.s1 .frame.down .f-body,
+.s1 .frame.err .f-body,
+.s1 .frame.on .f-body,
+.s1 .frame.on .f-plate,
+.s1 .frame.down .f-shadow,
+.s1 .frame.on .f-shadow,
+.s1 .cover,
+.s1 .clock.open .cover,
+.s1 .key,
+.s1 .clock.open .key{transition-duration: .01s !important; transition-delay: 0s !important;}
+}
+
+.s1{--u:min(calc(100cqw / 16.6), calc(100cqh / 17.4), 36px);}
+
+/* ===== Step 2: ported from studies/02-rotate-the-city (rules prefixed with .s2) ===== */
+.s2 .stage{box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 1.2);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;}
+.s2 .controls{flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--u) * 1.2);}
+.s2 .clues{display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 1.2); flex: none;}
+.s2{--u:min(calc(100cqw / 12.2), calc(100cqh / 25.9), 34px);}
+@container (min-aspect-ratio: 5/4){
+.s2{--u:min(calc(100cqw / 19.2), calc(100cqh / 19.4), 34px);}
+.s2 .controls{flex-direction: row; gap: calc(var(--u) * 2);}
+}
+.s2 svg{fill: none; stroke: var(--line); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; display: block;}
+.s2 svg *{vector-effect: non-scaling-stroke;}
+.s2 .scene{position: relative; flex: none; width: calc(var(--u) * 12); height: calc(var(--u) * 12);}
+.s2 .city{--a: 0deg;
+  --dur: 900ms;
+  --ease: cubic-bezier(.55, 0, .3, 1);
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: rotate(var(--a));
+  transition: transform var(--dur) var(--ease), opacity .3s ease;
+  will-change: transform;}
+.s2 .city.dim{opacity: .5;}
+.s2 .bld{fill: var(--panel); stroke: var(--line);}
+.s2 .edge{stroke: var(--bevel-hi);}
+.s2 .win{stroke: var(--line-dim);}
+.s2 .door{position: absolute;
+  inset: 0;
+  margin: auto;
+  width: calc(var(--u) * 3.27);
+  aspect-ratio: 140 / 200;
+  perspective: calc(var(--u) * 25);}
+.s2 .door svg{position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none;}
+.s2 .d-shadow{fill: var(--shade); stroke: none; opacity: .6;}
+.s2 .d-outer{fill: var(--panel); stroke: var(--line);}
+.s2 .d-hi{stroke: var(--bevel-hi);}
+.s2 .d-lo{stroke: var(--bevel-lo);}
+.s2 .d-open{fill: var(--niche); stroke: var(--line-dim);}
+.s2 .moon{opacity: 0; transition: opacity .15s ease .45s;}
+.s2 .moon text{fill: var(--lit);
+  stroke: none;
+  font-family: 'Jost', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 300;
+  font-size: 15px;
+  letter-spacing: 4px;}
+.s2 .door.open .moon{opacity: 1; transition: opacity 0s;}
+.s2 .panel{transform-origin: 24.3% 50%;
+  transform: rotateY(0deg);
+  transition: transform .6s ease-in-out;
+  will-change: transform;}
+.s2 .door.open .panel{transform: rotateY(-104deg); transition: transform 1s cubic-bezier(.5, 0, .3, 1);}
+.s2 .p-body{fill: var(--panel); stroke: var(--line);}
+.s2 .clue{width: calc(var(--u) * 8); height: auto; flex: none;}
+.s2 .clue-plaque{fill: var(--panel); stroke: var(--line);}
+.s2 .clue-plate{fill: var(--panel-in); stroke: var(--line-dim);}
+.s2 .clue-step{stroke: var(--lit);}
+.s2 .marks{width: calc(var(--u) * 5); height: auto; flex: none;}
+.s2 .m-ring{fill: var(--panel); stroke: var(--line);}
+.s2 .m-in{fill: var(--panel-in); stroke: var(--line-dim);}
+.s2 .m-fill{fill: var(--lit); stroke: var(--lit); opacity: 0; transition: opacity .3s ease;}
+.s2 .mark.on .m-fill{opacity: 1; transition: opacity .45s ease;}
+.s2 .pad{flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, calc(var(--u) * 2.8));
+  gap: calc(var(--u) * .25);}
+.s2 .btn{--c-fill: var(--panel);
+  --c-edge: var(--line);
+  --c-plate: var(--panel-in);
+  --c-hi: var(--bevel-hi);
+  --c-lo: var(--bevel-lo);
+  --c-arrow: var(--lit);
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  aspect-ratio: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;}
+.s2 .btn[data-dir="up"]{grid-column: 2; grid-row: 1;}
+.s2 .btn[data-dir="left"]{grid-column: 1; grid-row: 2;}
+.s2 .btn[data-dir="down"]{grid-column: 2; grid-row: 2;}
+.s2 .btn[data-dir="right"]{grid-column: 3; grid-row: 2;}
+.s2 .btn:focus-visible{outline: 1.5px solid var(--lit); outline-offset: 3px;}
+.s2 .btn svg{width: 100%; height: 100%; overflow: visible;}
+.s2 .stage.is-locked .btn{cursor: default;}
+.s2 .b-shadow{fill: var(--shade); stroke: none; opacity: .6; transition: opacity .3s ease;}
+.s2 .b-body{transition: transform .3s ease-in-out;}
+.s2 .b-outer,
+.s2 .b-plate,
+.s2 .b-hi,
+.s2 .b-lo,
+.s2 .b-arrow{transition: fill .3s ease, stroke .3s ease;}
+.s2 .b-outer{fill: var(--c-fill); stroke: var(--c-edge);}
+.s2 .b-hi{stroke: var(--c-hi);}
+.s2 .b-lo{stroke: var(--c-lo);}
+.s2 .b-plate{fill: var(--c-plate); stroke: var(--line-dim);}
+.s2 .b-arrow{stroke: var(--c-arrow);}
+@media (hover: hover){
+.s2 .stage:not(.is-locked) .btn:hover{--c-edge: var(--line-hi);}
+}
+.s2 .btn.ok{--c-edge: var(--bright); --c-arrow: var(--bright);}
+.s2 .btn.down{--c-edge: var(--bright); --c-arrow: var(--bright);}
+.s2 .btn.down .b-outer,
+.s2 .btn.down .b-arrow{transition: fill .08s ease, stroke .08s ease;}
+.s2 .btn.down .b-body{transform: translate(1.5px, 2px); transition: transform .2s ease-out;}
+.s2 .btn.down .b-shadow{opacity: .3; transition: opacity .2s ease-out;}
+.s2 .btn.err{--c-fill: #0b0b0b; --c-plate: #090909; --c-edge: #474747; --c-hi: #0b0b0b; --c-lo: #0b0b0b; --c-arrow: #4a4a4a;}
+.s2 .btn.err .b-outer,
+.s2 .btn.err .b-plate,
+.s2 .btn.err .b-arrow{transition: fill .1s ease, stroke .1s ease;}
+.s2 .btn.err .b-body{transform: translate(1.5px, 2px); transition: transform .2s ease-out;}
+.s2 .btn.err .b-shadow{opacity: .3;}
+@media (hover: hover){
+}
+@media (prefers-reduced-motion: reduce){
+.s2 .city{transition-duration: .01s !important;}
+.s2 .panel,
+.s2 .door.open .panel,
+.s2 .moon,
+.s2 .door.open .moon,
+.s2 .m-fill,
+.s2 .mark.on .m-fill,
+.s2 .b-body,
+.s2 .btn.down .b-body,
+.s2 .btn.err .b-body,
+.s2 .b-outer,
+.s2 .b-arrow{transition-duration: .01s !important; transition-delay: 0s !important;}
+}
+
+.s3{--s:min(calc(100cqw / 440), calc(100cqh / 380), 1.4px);}
+
+/* ===== Step 3: ported from studies/03-place-the-letters (rules prefixed with .s3) ===== */
+.s3 .stage{box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;}
+.s3 svg{fill: none; stroke: var(--line); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; display: block;}
+.s3 svg *{vector-effect: non-scaling-stroke;}
+.s3 .scene{flex: none;
+  width: calc(var(--s) * 440);
+  height: calc(var(--s) * 380);
+  overflow: visible;
+  touch-action: manipulation;}
+.s3 .slot{fill: var(--niche); stroke: var(--line-dim);}
+.s3 .refl{stroke: var(--reflect);}
+.s3 .tile{--c-fill: var(--panel);
+  --c-edge: var(--line);
+  --c-glyph: var(--lit);
+  outline: none;
+  cursor: pointer;
+  transition: opacity .35s ease;}
+.s3 .tile:not(.free){cursor: default;}
+.s3 .t-shadow{fill: var(--shade); stroke: none; opacity: .22;}
+.s3 .t-outer{fill: var(--c-fill); stroke: var(--c-edge); transition: stroke .3s ease;}
+.s3 .t-hi{stroke: var(--bevel-hi);}
+.s3 .t-lo{stroke: var(--bevel-lo);}
+.s3 .t-plate{fill: var(--panel-in); stroke: var(--line-dim); transition: stroke .3s ease;}
+.s3 .t-glyph{stroke: var(--c-glyph); transition: stroke .3s ease;}
+.s3 .hit{fill: transparent; stroke: none; pointer-events: all;}
+@media (hover: hover){
+.s3 .scene:not(.is-locked) .tile.free:hover{--c-edge: var(--line-hi);}
+}
+.s3 .tile.free:focus-visible{--c-edge: var(--bright);}
+.s3 .tile.wait{opacity: .6;}
+.s3 .tile.down{--c-edge: var(--bright); --c-glyph: var(--bright);}
+.s3 .tile.done{--c-edge: var(--line-hi); --c-glyph: var(--bright);}
+.s3 .tile.wrong{--c-edge: #444444; --c-glyph: #a8a8a8;}
+.s3 .tile.wrong .t-plate{stroke: #333333;}
+.s3 #top{opacity: 0;}
+.s3 .top-handle{fill: var(--panel); stroke: var(--line);}
+.s3 .top-cone{fill: var(--panel); stroke: var(--line);}
+.s3 .top-edge{stroke: var(--bevel-hi);}
+.s3 .top-band{stroke: var(--line-dim);}
+.s3 .top-disc{fill: var(--panel-in); stroke: var(--line);}
+@media (hover: hover){
+}
+@media (prefers-reduced-motion: reduce){
+.s3 .tile,
+.s3 .t-outer,
+.s3 .t-plate,
+.s3 .t-glyph{transition-duration: .01s !important;}
+}
+
+.s4{--s:min(calc(100cqw / 360), calc(100cqh / 400), 1.6px);}
+
+/* ===== Step 4: ported from studies/04-activate-the-spinning-top (rules prefixed with .s4) ===== */
+.s4 .scene{  width:calc(360 * var(--s)); height:calc(400 * var(--s)); display:block; flex:none; touch-action:none; overflow:visible;}
+.s4 .scene *{vector-effect:non-scaling-stroke}
+.s4 .scene{fill:none;stroke:var(--line);stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}
+.s4 .mark{--eo:#9a9a9a;--ei:#5e5e5e;--dg:#dcdcdc;--face:#1d1d1d;--plate:#161616;--hl:#565656;--sh:#060606;cursor:pointer;outline:none}
+.s4 .mark .m-in{transition:transform 50ms linear}
+.s4 .mark .m-face{fill:var(--face);stroke:var(--eo);transition:stroke 50ms linear,fill 50ms linear}
+.s4 .mark .m-hl{stroke:var(--hl)}
+.s4 .mark .m-sh{stroke:var(--sh)}
+.s4 .mark .m-plate{fill:var(--plate);stroke:var(--ei);transition:stroke 50ms linear,fill 50ms linear}
+.s4 .mark .m-digit{stroke:var(--dg);transition:stroke 50ms linear}
+.s4 .mark .m-shadow{fill:#000;stroke:none;opacity:.6;transition:opacity 50ms linear}
+.s4 .mark .hit{fill:transparent;stroke:none}
+@media (hover:hover){
+.s4 .scene:not(.locked) .mark:not(.active):hover{--eo:#e4e4e4;--ei:#a8a8a8}
+}
+.s4 .mark:focus-visible:not(.active){--eo:#e4e4e4;--ei:#a8a8a8}
+.s4 .mark.down{--eo:#fff;--ei:#d0d0d0}
+.s4 .mark.down .m-in{transform:translate(2px,2px)}
+.s4 .mark.down .m-shadow{opacity:.25}
+.s4 .mark.active{--eo:#f4f4f4;--ei:#fff;--dg:#fff;--plate:#1b1b1b}
+.s4 .mark.pulse{--eo:#fff;--ei:#fff;--dg:#fff;--plate:#3c3c3c;--face:#2a2a2a;filter:drop-shadow(0 0 5px rgba(255,255,255,.6))}
+.s4 .mark.error{--eo:#2c2c2c;--ei:#262626;--dg:#505050;--face:#090909;--plate:#060606;--hl:#1a1a1a;--sh:#030303}
+.s4 .mark.error .m-face,
+.s4 .mark.error .m-plate,
+.s4 .mark.error .m-digit{transition:none}
