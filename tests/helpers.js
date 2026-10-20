@@ -42,4 +42,14 @@ async function fillWrong(p) {            // M O N R T
   const order = [id.M, id.O, id.N, id.R, id.T];
   for (let s = 0; s < 5; s++) { await dragToSlot(p, order[s], s); await settle(p); }
 }
-module.exports = { tileInfo, slotCenters, tileById, dragTo, dragToSlot, settle, idsFor, fillAwake, fillWrong };
+// play steps 1-3 with their correct answers and wait until step 4 is mounted
+async function toStep4(p) {
+  const wait = (n, ph = 'playing') => p.waitForFunction(([n, ph]) => { const d = document.getElementById('paper').dataset; return d.step === String(n) && d.phase === ph; }, [n, ph], { timeout: 30000 });
+  for (const i of [2, 3, 1]) await p.locator('.s1 .frame:nth-child(' + i + ')').click();
+  await wait(2); await p.waitForTimeout(400);
+  for (const d of ['up', 'right', 'down', 'left']) { await p.locator('.s2 .btn[data-dir=' + d + ']').first().click(); await p.waitForTimeout(1050); }
+  await wait(3); await p.waitForTimeout(500);
+  await fillAwake(p);
+  await wait(4); await p.waitForTimeout(600);
+}
+module.exports = { toStep4, tileInfo, slotCenters, tileById, dragTo, dragToSlot, settle, idsFor, fillAwake, fillWrong };

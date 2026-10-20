@@ -6,7 +6,7 @@
      title,                                   panel name
      model,                                   { get, set(patch), restoreDefaults, onChange(fn)->off, settingsText }
      fields:  [{ key, id, label, min, max, step, unit }]     range sliders
-     easing:  { key, id, label, options: [[value, label], ...] }
+     easing:  { key, id, label, options: [[value, label], ...] }   optional select (omit when there is none)
      buttons: [{ id, label, run(): bool|string, enabled(): bool }]   extra buttons before Restore/Copy
    }) -> { refresh(), destroy() }
    The collapsed/expanded choice is remembered for the page session. */
@@ -32,7 +32,7 @@
         '</div>';
       }).join('');
       var e = cfg.easing;
-      var easeField = '<div class="cp-field cp-span">' +
+      var easeField = !e ? '' : '<div class="cp-field cp-span">' +
         '<label for="' + e.id + '">' + esc(e.label) + '</label>' +
         '<select id="' + e.id + '">' + e.options.map(function (o) { return '<option value="' + o[0] + '">' + esc(o[1]) + '</option>'; }).join('') + '</select>' +
       '</div>';
@@ -58,7 +58,7 @@
 
       var $ = function (id) { return root.querySelector('#' + id); };
       var toggle = root.querySelector('.cp-toggle');
-      var easeSel = $(e.id), note = $('cp-note'), noteTimer = 0;
+      var easeSel = e ? $(e.id) : null, note = $('cp-note'), noteTimer = 0;
 
       function say(msg) {
         note.textContent = msg;
@@ -70,7 +70,7 @@
           $(f.id).value = s[f.key];
           $(f.id + '-out').textContent = s[f.key] + ' ' + f.unit;
         });
-        easeSel.value = s[e.key];
+        if (easeSel) easeSel.value = s[e.key];
       }
       function refresh() {
         (cfg.buttons || []).forEach(function (b) { if (b.enabled) $(b.id).disabled = !b.enabled(); });
@@ -83,7 +83,7 @@
       cfg.fields.forEach(function (f) {
         $(f.id).addEventListener('input', function () { var p = {}; p[f.key] = $(f.id).value; M.set(p); });
       });
-      easeSel.addEventListener('change', function () { var p = {}; p[e.key] = easeSel.value; M.set(p); });
+      if (easeSel) easeSel.addEventListener('change', function () { var p = {}; p[e.key] = easeSel.value; M.set(p); });
 
       (cfg.buttons || []).forEach(function (b) {
         $(b.id).addEventListener('click', function () {

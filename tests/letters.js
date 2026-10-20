@@ -368,7 +368,7 @@ function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 
   await waitStep(4);
   const seq = await p.evaluate(() => window.__seq);
   check('Success fires once and leads to step 4 (3 completing → transition → 4 playing)', seq.filter(v => v === '3:completing').length === 1 && seq[seq.length - 1] === '4:playing', seq.join(' > '));
-  check('Step 4 reached, stamps 1-3 kept, no tuning panel on step 4', (await st()).stamps === '1110' && await p.locator('.city-panel').count() === 0);
+  check('Step 4 reached, stamps 1-3 kept, Letter panel replaced by Top Spin Controls', (await st()).stamps === '1110' && await p.locator('aside[aria-label="Top Spin Controls"]').count() === 1 && await p.locator('aside[aria-label="Letter Interaction Controls"]').count() === 0);
   await p.waitForTimeout(500);
   check('No console/page/network errors', errs.length === 0, JSON.stringify(errs));
 

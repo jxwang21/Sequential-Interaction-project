@@ -342,31 +342,44 @@
 .s3 .msg{transition-duration: .01s !important;}
 }
 
-.s4{--s:min(calc(100cqw / 360), calc(100cqh / 400), 1.6px);}
+.s4{--s:min(calc(100cqw / 360), calc(100cqh / 500), 1.2px);}
 
-/* ===== Step 4: ported from studies/04-activate-the-spinning-top (rules prefixed with .s4) ===== */
-.s4 .scene{  width:calc(360 * var(--s)); height:calc(400 * var(--s)); display:block; flex:none; touch-action:none; overflow:visible;}
-.s4 .scene *{vector-effect:non-scaling-stroke}
-.s4 .scene{fill:none;stroke:var(--line);stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}
-.s4 .mark{--eo:#9a9a9a;--ei:#5e5e5e;--dg:#dcdcdc;--face:#1d1d1d;--plate:#161616;--hl:#565656;--sh:#060606;cursor:pointer;outline:none}
-.s4 .mark .m-in{transition:transform 50ms linear}
-.s4 .mark .m-face{fill:var(--face);stroke:var(--eo);transition:stroke 50ms linear,fill 50ms linear}
-.s4 .mark .m-hl{stroke:var(--hl)}
-.s4 .mark .m-sh{stroke:var(--sh)}
-.s4 .mark .m-plate{fill:var(--plate);stroke:var(--ei);transition:stroke 50ms linear,fill 50ms linear}
-.s4 .mark .m-digit{stroke:var(--dg);transition:stroke 50ms linear}
-.s4 .mark .m-shadow{fill:#000;stroke:none;opacity:.6;transition:opacity 50ms linear}
-.s4 .mark .hit{fill:transparent;stroke:none}
-@media (hover:hover){
-.s4 .scene:not(.locked) .mark:not(.active):hover{--eo:#e4e4e4;--ei:#a8a8a8}
+/* ===== Step 4: redesigned as "tap the top to spin"; the top drawing comes from studies/04-activate-the-spinning-top ===== */
+.s4 .stage{box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;}
+.s4 svg{fill: none; stroke: var(--line); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; display: block;}
+.s4 svg *{vector-effect: non-scaling-stroke;}
+.s4 .scene{flex: none;
+  width: calc(var(--s) * 360);
+  height: calc(var(--s) * 500);
+  overflow: visible;
+  touch-action: none;}
+
+.s4 .top{--eo: var(--line); cursor: pointer; outline: none; -webkit-tap-highlight-color: transparent;}
+.s4 .top .tp{stroke: var(--eo); transition: stroke .15s ease;}
+.s4 .top .fillp{fill: var(--panel);}
+.s4 .top .disc{fill: var(--panel-in);}
+.s4 .shadow{fill: #000; stroke: none; opacity: .55;}
+.s4 .shade-l{fill: #fff; stroke: none; opacity: .1;}
+.s4 .shade-d{fill: #000; stroke: none; opacity: .28;}
+.s4 .stripe-m{fill: #ececec; stroke: none; opacity: .88;}
+.s4 .stripe-s{fill: #9a9a9a; stroke: none; opacity: .5;}
+.s4 .tick{stroke: var(--bright); stroke-width: 2;}
+.s4 .hit{fill: transparent; stroke: none; pointer-events: all;}
+@media (hover: hover){
+.s4 .top:hover{--eo: var(--line-hi);}
 }
-.s4 .mark:focus-visible:not(.active){--eo:#e4e4e4;--ei:#a8a8a8}
-.s4 .mark.down{--eo:#fff;--ei:#d0d0d0}
-.s4 .mark.down .m-in{transform:translate(2px,2px)}
-.s4 .mark.down .m-shadow{opacity:.25}
-.s4 .mark.active{--eo:#f4f4f4;--ei:#fff;--dg:#fff;--plate:#1b1b1b}
-.s4 .mark.pulse{--eo:#fff;--ei:#fff;--dg:#fff;--plate:#3c3c3c;--face:#2a2a2a;filter:drop-shadow(0 0 5px rgba(255,255,255,.6))}
-.s4 .mark.error{--eo:#2c2c2c;--ei:#262626;--dg:#505050;--face:#090909;--plate:#060606;--hl:#1a1a1a;--sh:#030303}
-.s4 .mark.error .m-face,
-.s4 .mark.error .m-plate,
-.s4 .mark.error .m-digit{transition:none}
+.s4 .top:focus-visible{--eo: var(--bright);}
+.s4 .top:focus-visible .disc{stroke-width: 2.5;}
+
+.s4 .counter{fill: var(--lit); stroke: none; font-family: 'Jost', 'Helvetica Neue', Arial, sans-serif; font-weight: 300; font-size: 24px; letter-spacing: 2px; font-variant-numeric: tabular-nums;}
+.s4 .pop{fill: var(--bright); stroke: none; font-family: 'Jost', 'Helvetica Neue', Arial, sans-serif; font-weight: 300; pointer-events: none; font-variant-numeric: tabular-nums;}
+@media (prefers-reduced-motion: reduce){
+.s4 .top .tp{transition-duration: .01s !important;}
+}

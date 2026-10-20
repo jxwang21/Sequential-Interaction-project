@@ -125,68 +125,24 @@ function check(name,ok,extra){results.push([ok,name,extra||'']);console.log((ok?
   await waitPhase('playing','4');
   s=await st();
   check('Auto-advance to step 4; stamps 1-3 persist',s.label==='Step 4 of 4'&&s.stamps==='1110'&&s.scenes==='scene-root s4'&&s.prog==='done,done,done,current',JSON.stringify(s));
-  check('Step 4 hint begins "Final step"',s.hint.startsWith('Final step'),s.hint);
+  check('Step 4 hint is "Tap the top to spin. Each full turn reveals a number."',s.hint==='Tap the top to spin. Each full turn reveals a number.',s.hint);
   check('Same paper after step 4',await samePaper());
   await p.waitForTimeout(600); await p.screenshot({path:SH+'s4.png'});
 
-  // ---- STEP 4: marks 3,1,7
-  const mk=n=>`.s4 .mark[data-n="${n}"] .hit`;
-  await press(mk(3)); await press(mk(1));
-  await p.waitForTimeout(400);
+  // ---- STEP 4: tap the top (the completion rule is intentionally not connected yet)
+  check('S4: old clock and number marks are gone, top at rest with Turns: 0',await p.locator('.s4 .mark, .s4 #marks').count()===0&&(await p.locator('#counter').textContent())==='Turns: 0'&&(await p.locator('#top').getAttribute('data-theta'))==='0.000');
+  await p.locator('#top .hit').click({force:true});
+  await p.waitForTimeout(1700);
   s=await st();
-  check('S4 incomplete (2/3): stays on step 4, top not spinning',s.step==='4'&&s.phase==='playing'&&s.stamps==='1110');
-  await press(mk(3)); // already active -> ignored (3 is active). press wrong: 7 is correct next. So test wrong via fresh:
-  await p.waitForTimeout(100);
-  // make a wrong: restart not allowed (global). Press active mark again is ignored; instead complete wrong-flow in a new sequence:
-  // reach wrong by pressing 7 before... both remaining is only 7 => correct. So test wrong on a fresh sequence via error path below.
-  // Complete.
-  const cx0=await p.evaluate(()=>document.getElementById('top-mark').getAttribute('cx'));
-  await press(mk(7));
-  await p.waitForTimeout(900);
-  const cx1=await p.evaluate(()=>document.getElementById('top-mark').getAttribute('cx'));
-  await p.waitForTimeout(173);
-  const cx2=await p.evaluate(()=>document.getElementById('top-mark').getAttribute('cx'));
-  check('S4 top is spinning after the 3rd correct mark (marker moves)',cx0!==cx1&&cx1!==cx2,[cx0,cx1,cx2].join('/'));
-  await p.screenshot({path:SH+'s4-spinning.png'});
-  await waitPhase('completing','4',8000);
-  s=await st();
-  check('S4 success: stamp 4 + Completed',s.stamps==='1111'&&s.status==='completed',JSON.stringify(s));
-  await waitPhase('ended','4');
-  s=await st();
-  const endTxt=await p.locator('#ending-text').textContent();
-  check('Ending: "All steps completed" visible with 4 stamps',endTxt==='All steps completed'&&s.status==='ended'&&s.stamps==='1111'&&s.prog==='done,done,done,done',JSON.stringify(s));
-  check('Ending: "Start again" button visible',await p.locator('#again').isVisible()&&await p.locator('#again').textContent()==='Start again');
-  check('Ending: top still spinning',await (async()=>{const a=await p.evaluate(()=>document.getElementById('top-mark').getAttribute('cx'));await p.waitForTimeout(230);const c=await p.evaluate(()=>document.getElementById('top-mark').getAttribute('cx'));return a!==c})());
-  check('Ending: same paper',await samePaper());
-  await p.screenshot({path:SH+'end.png'});
+  check('S4: one tap = one full turn (Turns: 1), step 4 does not auto-complete (no old 3-1-7 logic)',(await p.locator('#counter').textContent())==='Turns: 1'&&(await p.locator('#top').getAttribute('data-theta'))==='360.000'&&s.step==='4'&&s.phase==='playing'&&s.stamps==='1110',JSON.stringify(s));
+  await p.screenshot({path:SH+'s4-one-turn.png'});
 
-  // ---- Start again => step 1, clean
-  await p.locator('#again').click(); await p.waitForTimeout(900);
+  // ---- Restart from step 4 => step 1, clean
+  await p.locator('#restart').click(); await p.waitForTimeout(900);
   s=await st();
-  check('Start again: back to step 1, stamps cleared, only s1 mounted',s.label==='Step 1 of 4'&&s.stamps==='0000'&&s.scenes==='scene-root s1'&&s.prog==='current,locked,locked,locked'&&s.status==='none',JSON.stringify(s));
-  check('Start again: fresh step 1 inputs (no frames on, clock closed)',await p.locator('.s1 .frame.on').count()===0&&await p.locator('.s1 .clock.open').count()===0);
-  check('Start again: ending hidden',!(await p.locator('#again').isVisible()));
-  check('Start again: same paper',await samePaper());
-
-  // ---- step 4 wrong input (needs a fresh run through 1-3)
-  for(const i of [2,3,1]) await press('.s1 .frame:nth-child('+i+')');
-  await waitPhase('playing','2',15000); await p.waitForTimeout(500);
-  for(const d of ['up','right','down','left']){await press('.s2 .btn[data-dir='+d+']');await p.waitForTimeout(1050);}
-  await waitPhase('playing','3',15000); await p.waitForTimeout(500);
-  await H.fillAwake(p);
-  await waitPhase('playing','4',15000); await p.waitForTimeout(500);
-  await press(mk(3));
-  await press(mk(7)); // wrong (expected 1)
-  await p.waitForTimeout(100);
-  const errNow4=await p.locator('.s4 .mark.error').count()===1;
-  await p.waitForTimeout(500);
-  s=await st();
-  check('S4 wrong: mark shows .error then progress cleared; still step 4, stamps 1-3 kept',errNow4&&await p.locator('.s4 .mark.active').count()===0&&s.step==='4'&&s.stamps==='1110'&&s.scenes==='scene-root s4',JSON.stringify(s));
-  check('S4 wrong: top not spinning, retry works',await (async()=>{const a=await p.evaluate(()=>document.getElementById('top-mark').getAttribute('cx'));await p.waitForTimeout(150);return a==='76'})());
-  await press(mk(3)); await press(mk(1)); await press(mk(7));
-  await waitPhase('ended','4',10000);
-  check('S4 retry after wrong completes to the ending',(await st()).stamps==='1111');
-  await p.locator('#again').click(); await p.waitForTimeout(900);
+  check('Restart from step 4: back to step 1, stamps cleared, only s1 mounted, no panel',s.label==='Step 1 of 4'&&s.stamps==='0000'&&s.scenes==='scene-root s1'&&s.prog==='current,locked,locked,locked'&&s.status==='none'&&await p.locator('.city-panel').count()===0,JSON.stringify(s));
+  check('Restart: fresh step 1 inputs (no frames on, clock closed)',await p.locator('.s1 .frame.on').count()===0&&await p.locator('.s1 .clock.open').count()===0);
+  check('Restart: same paper',await samePaper());
 
   // ---- global Restart from step 2 with a stamp
   for(const i of [2,3,1]) await press('.s1 .frame:nth-child('+i+')');
