@@ -240,6 +240,7 @@ function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 
     const total = Math.hypot(x - target.cx, y - target.cy);
     return { rec, t0, d, total, target };
   }
+  await p.selectOption('#lp-ease', 'linear');   // linear makes the glide time directly comparable to the setting
   await setRange('lp-snap-ms', 500);
   let r = await timeToSettle(id.A1, 0, 40);
   const settleAt = (() => { const arr = r.rec.filter(s => s.t >= r.t0); const hit = arr.find(s => r.d(s) < 2.5); return hit ? hit.t - r.t0 : -1; })();
@@ -250,6 +251,7 @@ function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 
   const settleFast = (() => { const arr = r.rec.filter(s => s.t >= r.t0); const hit = arr.find(s => r.d(s) < 2.5); return hit ? hit.t - r.t0 : -1; })();
   check('Snap duration 80 ms: tile arrives almost immediately', settleFast >= 0 && settleFast < 260, settleFast.toFixed(0) + ' ms');
   await H.dragTo(p, id.A1, S0[0].cx, S0[0].cy + 220 * sc); await H.settle(p, 900);
+  await p.selectOption('#lp-ease', 'original');
 
   // easing: linear ≈ half way at half time; ease out is further along
   await setRange('lp-snap-ms', 600);
@@ -345,6 +347,8 @@ function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 
   const order = [id.A1, id.W, id.A2, id.K, id.E];
   for (let q = 0; q < 5; q++) { await H.dragToSlot(p, order[q], q); await H.settle(p, 420); }
   await p.waitForTimeout(250);
+  const topOpacity = () => p.evaluate(() => +getComputedStyle(document.getElementById('top')).opacity);
+  const early = await topOpacity();
   const done = await H.tileInfo(p);
   const placed = done.filter(t => t.loc.startsWith('slot')), others = done.filter(t => t.loc.startsWith('rack'));
   check('Success: board locked, five letters styled .done', await locked() && placed.length === 5 && placed.every(t => /done/.test(t.cls)), placed.map(t => t.letter).join(''));
@@ -355,9 +359,7 @@ function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 
   const before = (await H.tileById(p, id.W)).loc;
   await H.dragTo(p, id.W, S0[4].cx, S0[4].cy + 220 * sc); await p.waitForTimeout(150);
   check('Success: input stays locked (a placed tile cannot be dragged out)', (await H.tileById(p, id.W)).loc === before);
-  const topOpacity = () => p.evaluate(() => +getComputedStyle(document.getElementById('top')).opacity);
-  const early = await topOpacity();
-  await p.waitForTimeout(1200);
+  await p.waitForTimeout(600);
   const rising = await topOpacity();
   await p.screenshot({ path: SH + 'letters-success-rising.png' });
   check('Success: the spinning top appears after the letters react (hidden at first, rising later)', early < 0.2 && rising > 0.05 && rising < 1, early.toFixed(2) + ' → ' + rising.toFixed(2));
