@@ -31,16 +31,20 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
 
   // samples (theta, speed inputs, counter, pops) every frame from "now"
   const startRec = () => p.evaluate(() => {
-    window.__r = { s: [], t0: performance.now(), counters: [], pops: [] };
+    if (window.__r && window.__r.obs) window.__r.obs.forEach(o => o.disconnect());
+    window.__r = { s: [], t0: performance.now(), counters: [], pops: [], obs: [] };
     const top = document.getElementById('top'), c = document.getElementById('counter');
-    new MutationObserver(m => m.forEach(x => x.addedNodes.forEach(n => { if (n.nodeType === 1) window.__r.pops.push({ t: performance.now(), n: n.textContent }); }))).observe(document.getElementById('pops'), { childList: true });
-    new MutationObserver(() => window.__r.counters.push({ t: performance.now(), c: c.textContent })).observe(c, { childList: true, characterData: true, subtree: true });
+    const o1 = new MutationObserver(m => m.forEach(x => x.addedNodes.forEach(n => { if (n.nodeType === 1) window.__r.pops.push({ t: performance.now(), n: n.textContent }); })));
+    o1.observe(document.getElementById('pops'), { childList: true });
+    const o2 = new MutationObserver(() => window.__r.counters.push({ t: performance.now(), c: c.textContent }));
+    o2.observe(c, { childList: true, characterData: true, subtree: true });
+    window.__r.obs.push(o1, o2);
     (function tick() {
       window.__r.s.push({ t: performance.now(), th: +top.dataset.theta, turns: +top.dataset.turns, c: c.textContent });
       window.__r.raf = requestAnimationFrame(tick);
     })();
   });
-  const stopRec = () => p.evaluate(() => { cancelAnimationFrame(window.__r.raf); return window.__r; });
+  const stopRec = () => p.evaluate(() => { cancelAnimationFrame(window.__r.raf); window.__r.obs.forEach(o => o.disconnect()); const r = window.__r; return { s: r.s, t0: r.t0, counters: r.counters, pops: r.pops }; });
   // helpers over a recording
   const analyse = r => {
     const s = r.s, out = { mono: true, maxStepDeg: 0, maxAccel: 0, consistent: true, start: null, end: null };
@@ -84,7 +88,8 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   const hov = await stroke();
   check('Hover gives a light brightness change', hov !== base, base + ' → ' + hov);
   await p.mouse.move(5, 5); await p.waitForTimeout(250);
-  await p.evaluate(() => document.getElementById('top').focus({ focusVisible: true })); await p.waitForTimeout(250);
+  await p.keyboard.press('Shift');
+  await p.evaluate(() => document.getElementById('top').focus()); await p.waitForTimeout(250);
   const foc = await stroke();
   check('Keyboard focus brightens the outline (and is visible)', foc !== base, base + ' → ' + foc);
   await p.evaluate(() => document.getElementById('top').blur());
@@ -161,13 +166,14 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   await p.screenshot({ path: SH + 'top-after.png' });
 
   // ================= pops: motion, not blocking =================
+  await p.evaluate(() => window.focus());
   await tapMouse();
   await p.waitForFunction(() => document.querySelector('#pops .pop'), null, { timeout: 3000 });
-  const popY0 = await p.evaluate(() => { const e = document.querySelector('#pops .pop'); const b = e.getBoundingClientRect(); return { y: +e.getAttribute('y'), op: +getComputedStyle(e).opacity, bottom: b.bottom, txt: e.textContent, pe: getComputedStyle(e).pointerEvents }; });
+  const popY0 = await p.evaluate(() => { const e = document.querySelector('#pops .pop'); const m = e.getScreenCTM(); return { y: +e.getAttribute('y'), op: +getComputedStyle(e).opacity, bottom: m.d * (+e.getAttribute('y')) + m.f, txt: e.textContent, pe: getComputedStyle(e).pointerEvents }; });
   const hitTop = (await topBox()).top;
   await p.waitForTimeout(450);
   const popY1 = await p.evaluate(() => { const e = document.querySelector('#pops .pop'); return e ? { y: +e.getAttribute('y'), op: +getComputedStyle(e).opacity } : null; });
-  check('Pop: starts above the top (does not cover it), ignores pointer events', popY0.bottom <= hitTop + 1 && popY0.pe === 'none', JSON.stringify({ bottom: popY0.bottom.toFixed(0), hitTop: hitTop.toFixed(0) }));
+  check('Pop: its baseline starts above the top (does not cover it) and it ignores pointer events', popY0.bottom <= hitTop - 2 && popY0.pe === 'none', JSON.stringify({ bottom: popY0.bottom.toFixed(0), hitTop: hitTop.toFixed(0) }));
   check('Pop: moves up and fades out', popY1 && popY1.y < popY0.y - 3 && popY1.op < popY0.op, JSON.stringify({ y0: popY0.y, y1: popY1 && popY1.y, o0: popY0.op, o1: popY1 && popY1.op }));
   check('Pop does not block the next tap (the top is the element under its centre)', await p.evaluate(() => { const r = document.querySelector('#top .hit').getBoundingClientRect(); return document.elementFromPoint(r.left + r.width / 2, r.top + r.height * 0.55) === document.querySelector('#top .hit'); }));
   await p.waitForTimeout(1500);
@@ -192,7 +198,7 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   check('Turn duration 1500 ms is applied (one tap ≈ 1500 ms)', one.ms > 1300 && one.ms < 1700, one.ms.toFixed(0) + ' ms');
   await setRange('tp-turn', 900);
   // easing strength: angle after 100 ms
-  const thAt = async pct => { await setRange('tp-ease', pct); await startRec(); await tapMouse(); await p.waitForTimeout(1500); const rr = await stopRec(); const s0 = rr.s.find(x => x.th > 0.01); return rr.s.find(x => x.t >= s0.t + 100).th; };
+  const thAt = async pct => { await setRange('tp-ease', pct); await startRec(); await tapMouse(); await p.waitForTimeout(1500); const rr = await stopRec(); const s0 = rr.s.find(x => x.th > 0.01); return rr.s.find(x => x.t >= s0.t + 100).th - s0.th; };
   const sharp = await thAt(0), soft = await thAt(100);
   check('Easing strength 0 starts abruptly, 100 starts gently (angle after 100 ms: ' + sharp.toFixed(0) + '° vs ' + soft.toFixed(0) + '°)', sharp > soft * 3, sharp.toFixed(1) + ' / ' + soft.toFixed(1));
   await setRange('tp-ease', 50);
@@ -212,7 +218,7 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
 
   // pop settings
   const popStats = async () => {
-    await p.evaluate(() => { window.__pp = []; const pops = document.getElementById('pops'); new MutationObserver(m => m.forEach(x => x.addedNodes.forEach(n => { if (n.nodeType === 1) { const o = { t0: performance.now(), ys: [], size: n.getAttribute('font-size'), n }; window.__pp.push(o); (function tick() { if (!n.isConnected) { o.t1 = performance.now(); return; } o.ys.push(+n.getAttribute('y')); o.h = n.getBoundingClientRect().height; requestAnimationFrame(tick); })(); } }))).observe(pops, { childList: true }); });
+    await p.evaluate(() => { if (window.__ppo) window.__ppo.disconnect(); window.__pp = []; const pops = document.getElementById('pops'); window.__ppo = new MutationObserver(m => m.forEach(x => x.addedNodes.forEach(n => { if (n.nodeType === 1) { const o = { t0: performance.now(), ys: [], size: n.getAttribute('font-size'), n }; window.__pp.push(o); (function tick() { if (!n.isConnected) { o.t1 = performance.now(); return; } o.ys.push(+n.getAttribute('y')); o.h = n.getBoundingClientRect().height; requestAnimationFrame(tick); })(); } }))).observe(pops, { childList: true }); });
     await tapMouse(); await p.waitForTimeout(2200);
     return p.evaluate(() => { const o = window.__pp[0]; return { life: o.t1 - o.t0, rise: o.ys[0] - Math.min(...o.ys), size: +o.size, h: o.h }; });
   };
