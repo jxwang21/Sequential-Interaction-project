@@ -103,7 +103,7 @@
     top: auto;
     bottom: 0;
     width: auto;
-    max-height: 56vh;
+    max-height: 40vh;
     border-radius: 12px 12px 0 0;
     border-bottom: 0;
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -115,7 +115,10 @@
   body.has-city-panel { padding-bottom: calc(var(--cp-bottom, 0px) + 4px); }
 }
 @media (max-width: 520px) {
-  .cp-body { grid-template-columns: 1fr; }
+  .city-panel { font-size: 12px; }
+  .cp-body { gap: 8px 12px; padding: 2px 12px 12px; }
+  .cp-field label { flex-wrap: wrap; gap: 0 6px; }
+  .cp-range { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .cp-toggle svg, .cp-btn { transition-duration: .01s !important; }

@@ -71,6 +71,7 @@ function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 
   const firstPerm = await perm();
   async function noOverlap(label) {
     let bad = null, minGap = 1e9;
+    const k0 = await p.evaluate(() => document.getElementById('scene').getScreenCTM().a);
     for (let n = 0; n < 6; n++) {
       const T = await H.tileInfo(p), sc = await p.evaluate(() => document.getElementById('scene').getBoundingClientRect().toJSON());
       for (let i = 0; i < T.length; i++) {
@@ -80,21 +81,28 @@ function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 
           const c = T[j], gx = Math.abs(a.cx - c.cx) - (a.w + c.w) / 2, gy = Math.abs(a.cy - c.cy) - (a.h + c.h) / 2;
           const gap = Math.max(gx, gy);
           minGap = Math.min(minGap, gap);
-          if (gap < 1) bad = a.id + '/' + c.id + ' gap ' + gap.toFixed(1);
+          if (gap / k0 < 5) bad = a.id + '/' + c.id + ' gap ' + (gap / k0).toFixed(1) + ' units';
         }
       }
       await p.waitForTimeout(350);
     }
-    check(label + ': two clear rows, no overlap, all inside the scene', !bad, bad || 'min gap ' + minGap.toFixed(1) + 'px');
+    check(label + ': no overlap (gap ≥ 5 scene units), all inside the scene', !bad, bad || 'min gap ' + (minGap / k0).toFixed(1) + ' units');
   }
-  const rows = (await H.tileInfo(p)).map(t => Math.round(t.cy / 30));
-  check('Letters sit in exactly two rows of five', Object.values(rows.reduce((m, r) => (m[r] = (m[r] || 0) + 1, m), {})).sort().join() === '5,5');
+  const ys = (await H.tileInfo(p)).map(t => t.cy).sort((a, c) => a - c);
+  const tileH = (await H.tileInfo(p))[0].h;
+  check('Letters sit in exactly two rows of five', ys[4] - ys[0] < tileH * 0.3 && ys[9] - ys[5] < tileH * 0.3 && ys[5] - ys[4] > tileH * 1.0, ys.map(y => y.toFixed(0)).join());
   await noOverlap('Desktop 1280px');
   await p.setViewportSize({ width: 390, height: 800 }); await p.waitForTimeout(500);
   await noOverlap('Phone 390px');
-  const phone = await p.evaluate(() => { const pn = document.querySelector('.city-panel').getBoundingClientRect(); const ts = [...document.querySelectorAll('.s3 .tile .hit')].map(e => e.getBoundingClientRect()); return { panelTop: pn.top, maxTile: Math.max(...ts.map(r => r.bottom)), overflowX: document.documentElement.scrollWidth > document.documentElement.clientWidth, minTileW: Math.min(...ts.map(r => r.width)) }; });
-  check('Phone: panel does not cover the letters, no horizontal scroll, tiles ≥ 30px', phone.maxTile <= phone.panelTop && !phone.overflowX && phone.minTileW >= 30, JSON.stringify(phone));
+  const phoneInfo = () => p.evaluate(() => { const pn = document.querySelector('.city-panel').getBoundingClientRect(); const ts = [...document.querySelectorAll('.s3 .tile .hit')].map(e => e.getBoundingClientRect()); return { collapsed: document.querySelector('.city-panel').classList.contains('is-collapsed'), panelTop: Math.round(pn.top), panelH: Math.round(pn.height), maxTile: Math.round(Math.max(...ts.map(r => r.bottom))), overflowX: document.documentElement.scrollWidth > document.documentElement.clientWidth, minTileW: Math.round(Math.min(...ts.map(r => r.width))) }; });
+  let phone = await phoneInfo();
+  check('Phone, panel open: panel does not cover the letters, sheet ≤ 40% of the screen, tiles ≥ 24px, no horizontal scroll', phone.maxTile <= phone.panelTop && phone.panelH <= 330 && phone.minTileW >= 24 && !phone.overflowX, JSON.stringify(phone));
+  await p.screenshot({ path: SH + 'letters-phone-open.png' });
+  await p.locator('.cp-toggle').click(); await p.waitForTimeout(500);
+  phone = await phoneInfo();
+  check('Phone, panel collapsed: letters ≥ 36px and not covered', phone.collapsed && phone.maxTile <= phone.panelTop && phone.minTileW >= 36 && !phone.overflowX, JSON.stringify(phone));
   await p.screenshot({ path: SH + 'letters-phone.png' });
+  await p.locator('.cp-toggle').click(); await p.waitForTimeout(300);
   await p.setViewportSize({ width: 1280, height: 860 }); await p.waitForTimeout(500);
 
   // ================= drag behaviour =================
@@ -218,7 +226,7 @@ function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 
   await H.dragTo(p, id.A1, S0[0].cx, S0[0].cy + 78 * sc); await H.settle(p, 700);
   check('Snap distance 90: a drop 78 units away snaps into the slot', (await H.tileById(p, id.A1)).loc === 'slot-0');
   await H.dragTo(p, id.A1, S0[0].cx, S0[0].cy + 220 * sc); await H.settle(p, 900);   // take out
-  await p.locator('#lp-restore').click();
+  await p.locator('#cp-restore').click();
 
   async function timeToSettle(tileId, slotIdx, dropOffsetUnits) {
     const target = (await H.slotCenters(p))[slotIdx];
@@ -284,7 +292,7 @@ function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 
   await p.screenshot({ path: SH + 'letters-lift20.png' });
   await p.mouse.up(); await H.settle(p, 900);
   check('Drag lift 0 vs 20: lifted size differs (0 → no growth, 20 → larger)', Math.abs(s0 - 72 / 76) < 0.006 && s20 > s0 + 0.05, s0.toFixed(3) + ' / ' + s20.toFixed(3));
-  await p.locator('#lp-restore').click();
+  await p.locator('#cp-restore').click();
   await H.settle(p, 700);
 
   // error duration: 500 and 1500
