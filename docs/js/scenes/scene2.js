@@ -103,10 +103,9 @@
       var ROT = { up: 0, right: 90, down: 180, left: 270 };
       var LABEL = { up: 'Up', right: 'Right', down: 'Down', left: 'Left' };
       var PAD_ORDER = ['up', 'left', 'down', 'right'];
-      var STEP_MS = 900;       // one 15 degree turn
-      var RETURN_MS = 1600;    // slow return after a wrong input
-      var HEAVY = 'cubic-bezier(.55,0,.3,1)';      // slow start, firmer middle, gradual stop
-      var CONTROLLED = 'cubic-bezier(.45,0,.25,1)';
+      // Turn / return durations and easing live in js/city-motion.js (defaults = the study's 900 ms, 1600 ms,
+      // HEAVY / CONTROLLED curves). They are read when each action starts, so a change applies to the next action.
+      var CM = window.CityMotion;
 
       var stage = document.getElementById('stage');
       var city = document.getElementById('city');
@@ -116,6 +115,7 @@
       var marks = Array.prototype.slice.call(document.querySelectorAll('.mark'));
       var buttons = [];
       var step = 0, locked = false, pressing = null, timers = [];
+      var angle = 0, solved = false, previewing = false, panel = null;
 
       function buttonSvg(dir) {
         return '<svg viewBox="0 0 96 96" aria-hidden="true">' +
@@ -142,13 +142,51 @@
       });
 
       function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
-      function setLocked(v) { locked = v; stage.classList.toggle('is-locked', v); }
+      function setLocked(v) { locked = v; stage.classList.toggle('is-locked', v); if (panel) panel.refresh(); }
 
       function rotateCity(deg, ms, ease) {
         city.style.setProperty('--dur', ms + 'ms');
         city.style.setProperty('--ease', ease);
         city.style.setProperty('--a', deg + 'deg');
       }
+
+      // Rotate and call done() when the rotation has actually finished (transitionend), so input is never
+      // accepted before the city stops. A timer at ms (+ margin) covers a missing transitionend; if the angle does
+      // not change there is no transition, so done() waits exactly ms like the original study.
+      function turnTo(deg, ms, ease, done) {
+        var from = angle, finished = false;
+        angle = deg;
+        function fin(e) {
+          if (finished) return;
+          if (e && (e.target !== city || e.propertyName !== 'transform')) return;
+          finished = true;
+          city.removeEventListener('transitionend', fin);
+          done();
+        }
+        rotateCity(deg, ms, ease);
+        if (from === deg) { later(fin, ms); return; }
+        city.addEventListener('transitionend', fin);
+        later(fin, ms + 150);
+      }
+
+      // Preview one 15-degree turn from the current state without touching puzzle progress, then restore the
+      // city to where it was (using the return settings). Not an input: nothing is counted, nothing unlocks.
+      function replayTurn() {
+        if (!canReplay()) return false;
+        previewing = true;
+        setLocked(true);
+        var base = angle, s = CM.get();
+        turnTo(base + 15, s.stepMs, CM.turnEase(), function () {
+          later(function () {
+            turnTo(base, s.returnMs, CM.returnEase(), function () {
+              previewing = false;
+              setLocked(false);
+            });
+          }, 250);
+        });
+        return true;
+      }
+      function canReplay() { return !locked && !solved && !previewing; }
 
       function inside(el, x, y) {
         var r = el.getBoundingClientRect();
@@ -208,11 +246,12 @@
           step++;
           var n = step;
           el.classList.add('ok');
-          rotateCity(n * 15, STEP_MS, HEAVY);
-          later(function () {
+          turnTo(n * 15, CM.get().stepMs, CM.turnEase(), function () {
             el.classList.remove('ok');
             marks[n - 1].classList.add('on');   // fill only after the city has stopped
             if (n === SEQ.length) {
+              solved = true;
+              if (panel) panel.refresh();
               later(function () {
                 door.classList.add('open');
                 moon.setAttribute('aria-hidden', 'false');
@@ -222,7 +261,7 @@
             } else {
               setLocked(false);
             }
-          }, STEP_MS);
+          });
         } else {
           setLocked(true);
           el.classList.add('err');
@@ -231,19 +270,21 @@
             marks.forEach(function (m) { m.classList.remove('on'); });
             step = 0;
             city.classList.add('dim');
-            rotateCity(0, RETURN_MS, CONTROLLED);
-            later(function () {
+            turnTo(0, CM.get().returnMs, CM.returnEase(), function () {
               city.classList.remove('dim');
               setLocked(false);
-            }, RETURN_MS);
+            });
           }, 300);
         }
       }
 
       moon.setAttribute('aria-hidden', 'true');
 
+      if (window.CityPanel) panel = CityPanel.mount({ replay: replayTurn, canReplay: canReplay });
+
       return {
         destroy: function () {
+          if (panel) panel.destroy();
           timers.forEach(clearTimeout);
           timers = [];
           cancelPress();

@@ -1,0 +1,122 @@
+/* City Motion Controls (Step 2 tuning panel).
+   Wide screens: floating panel on the left; the paper shifts right while it is open, so nothing is covered.
+   Narrow screens (<= 860px): bottom sheet that starts collapsed; the paper shrinks to make room instead of being covered. */
+.city-panel {
+  position: fixed;
+  left: 16px;
+  top: 16px;
+  z-index: 20;
+  width: 272px;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  background: var(--panel);
+  color: var(--lit);
+  border: 1.5px solid var(--line-dim);
+  border-radius: 8px;
+  box-shadow: inset 1px 1px 0 #333, inset -1px -1px 0 var(--bevel-lo), 0 10px 30px rgba(0, 0, 0, .55);
+  font-size: 13px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+@media (min-width: 861px) {
+  body.has-city-panel.city-panel-open { padding-left: 304px; }
+}
+
+.cp-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--bright);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.cp-title { font-size: 14px; letter-spacing: .1em; text-transform: uppercase; }
+.cp-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s ease; }
+.city-panel.is-collapsed .cp-toggle svg { transform: rotate(-90deg); }
+.cp-toggle:focus-visible, .cp-btn:focus-visible, .city-panel select:focus-visible, .city-panel input:focus-visible { outline: 1.5px solid var(--lit); outline-offset: 2px; }
+
+.cp-body { padding: 2px 14px 14px; display: grid; gap: 14px; }
+.city-panel.is-collapsed .cp-body { display: none; }
+
+.cp-field { display: grid; gap: 5px; }
+.cp-field label { display: flex; justify-content: space-between; gap: 8px; color: var(--line); letter-spacing: .03em; }
+.cp-field output { color: var(--bright); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cp-range { display: flex; justify-content: space-between; color: #5a5a5a; font-size: 11px; }
+.cp-range i { font-style: normal; }
+
+.city-panel input[type="range"] { width: 100%; margin: 4px 0 0; accent-color: #cfcfcf; touch-action: manipulation; }
+.city-panel select {
+  width: 100%;
+  height: 34px;
+  padding: 0 8px;
+  font: inherit;
+  color: var(--bright);
+  background: var(--panel-in);
+  border: 1.5px solid var(--line-dim);
+  border-radius: 6px;
+}
+
+.cp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cp-wide { grid-column: 1 / -1; }
+.cp-btn {
+  height: 34px;
+  padding: 0 8px;
+  font: inherit;
+  color: var(--lit);
+  background: var(--panel-in);
+  border: 1.5px solid var(--line-dim);
+  border-radius: 6px;
+  box-shadow: 0 2px 0 var(--shade);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform .15s ease-out, box-shadow .15s ease-out, border-color .15s ease, color .15s ease;
+}
+@media (hover: hover) { .cp-btn:hover:not(:disabled) { border-color: var(--line-hi); } }
+.cp-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 var(--shade); }
+.cp-btn:disabled { color: #4a4a4a; border-color: #2e2e2e; cursor: default; }
+.cp-note { margin: -4px 0 0; min-height: 1.3em; color: var(--line); font-size: 12px; }
+
+/* collapsed on wide screens: a slim vertical tab on the left edge */
+@media (min-width: 861px) {
+  .city-panel.is-collapsed {
+    left: 6px;
+    top: 50%;
+    width: 34px;
+    transform: translateY(-50%);
+    overflow: visible;
+  }
+  .city-panel.is-collapsed .cp-toggle { padding: 12px 6px; flex-direction: column; }
+  .city-panel.is-collapsed .cp-title { writing-mode: vertical-rl; font-size: 12px; }
+}
+
+/* narrow screens: bottom sheet; the paper makes room (padding-bottom) instead of being covered */
+@media (max-width: 860px) {
+  .city-panel {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: auto;
+    max-height: 56vh;
+    border-radius: 12px 12px 0 0;
+    border-bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .cp-body { grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+  .cp-body .cp-field:nth-child(3), .cp-actions, .cp-note { grid-column: 1 / -1; }
+  .cp-actions { grid-template-columns: repeat(3, 1fr); }
+  .cp-wide { grid-column: auto; }
+  body.has-city-panel { padding-bottom: calc(var(--cp-bottom, 0px) + 4px); }
+}
+@media (max-width: 520px) {
+  .cp-body { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cp-toggle svg, .cp-btn { transition-duration: .01s !important; }
+}

@@ -24,6 +24,20 @@ How it behaves:
 
 Step 4 is not a copy of step 1: it shares the 3:17 clock and the same 3→1→7 answer, but has numbered marks (laid out 1, 7, 3), a quicker error wipe (250 ms), a pulse on the last mark, and the spinning top as its feedback.
 
+## Part 2 refinement: City Motion Controls (Step 2 only)
+
+A floating, collapsible panel appears **only on step 2** (Rotate the city) so the motion can be tuned by hand. It is bound to the real behaviour: a change applies to the next action, and input unlocks exactly when the city stops turning.
+
+| Control | Range | Default (= the original study) |
+|---|---|---|
+| Turn duration (after a correct press) | 300–1800 ms | 900 ms |
+| Return duration (after a wrong press) | 500–2500 ms | 1600 ms |
+| Turn easing | Original, Linear, Ease In, Ease Out, Ease In-Out, Spring/Bounce | Original (turn `cubic-bezier(.55,0,.3,1)`, return `cubic-bezier(.45,0,.25,1)`) |
+
+Any easing other than Original is applied to both the turn and the return. Buttons: **Replay turn** (previews one 15° turn, then restores the city; changes no progress and unlocks nothing), **Restore defaults**, **Copy settings** (copies the component name, values with units and the apply-and-commit instruction). Values are kept for the page session only.
+
+Code: `docs/js/city-motion.js` (defaults, limits, easings; edit `DEFAULTS` to change the saved defaults), `docs/js/city-panel.js` + `docs/css/panel.css` (the panel), `docs/js/scenes/scene2.js` (reads the settings). To remove the panel later, delete the `CityPanel.mount(...)` line in `scene2.js`.
+
 ## Repository layout
 
 ```
@@ -33,11 +47,15 @@ docs/                    <- the published site (GitHub Pages source)
   css/app.css            <- paper, progress, status row, stamps
   css/scenes.css         <- the four studies' styles, each prefixed .s1 … .s4
   js/app.js              <- sequence controller (unlock, stamps, transitions, restart)
+  js/city-motion.js      <- Step 2 motion settings (defaults, limits, easings)
+  js/city-panel.js       <- "City Motion Controls" panel (Step 2 only)
+  css/panel.css          <- panel styles
   js/scenes/scene1-4.js  <- the four studies ported as scenes (markup + original behaviour)
   fonts/jost-300.ttf     <- Jost Light, bundled (used for "MOON")
 studies/                 <- original, unmodified study sources (index.html + STUDY.md each)
 *.zip                    <- original study ZIPs, untouched
 tests/flow.js            <- Playwright end-to-end check of the whole sequence
+tests/city-panel.js      <- Playwright checks for the Step 2 panel
 ```
 
 The site is plain HTML/CSS/JS — **no build step**. The files in `docs/` are the editable source. All asset paths are relative.
