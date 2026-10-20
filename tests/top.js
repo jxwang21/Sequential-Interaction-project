@@ -322,6 +322,37 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   const t3 = await tp.evaluate(() => +document.getElementById('top').dataset.round);
   check('Two more touches in quick succession = 2 more turns in the same round (3 total)', t3 === 3, String(t3));
   await tp.screenshot({ path: SH + 'code-phone.png' });
+
+  // ---- several fingers at once (real two-point touches through the DevTools protocol)
+  const cdp = await tctx.newCDPSession(tp);
+  const sent = () => tp.evaluate(() => { const t = document.getElementById('top'); return +t.dataset.round + +t.dataset.queued; });   // turns requested this round
+  const touch = async (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts });
+  const base0 = await sent();
+  await touch('touchStart', [{ x: tbox.x - 14, y: tbox.y, id: 1 }, { x: tbox.x + 14, y: tbox.y - 10, id: 2 }]);
+  await tp.waitForTimeout(80);
+  await touch('touchEnd', []);
+  await tp.waitForTimeout(150);
+  const base1 = await sent();
+  check('Two fingers tapping together = two turns (one per finger, none doubled)', base1 - base0 === 2, String(base1 - base0));
+  await touch('touchStart', [{ x: tbox.x, y: tbox.y, id: 1 }]);
+  await tp.waitForTimeout(60);
+  await touch('touchMove', [{ x: 8, y: 8, id: 1 }]);
+  await tp.waitForTimeout(60);
+  await touch('touchEnd', []);
+  await tp.waitForTimeout(150);
+  check('A finger that slides off the top before lifting is not counted', (await sent()) === base1, String((await sent()) - base1));
+  await touch('touchStart', [{ x: tbox.x, y: tbox.y, id: 1 }, { x: 8, y: 8, id: 2 }]);
+  await tp.waitForTimeout(60);
+  await touch('touchEnd', []);
+  await tp.waitForTimeout(150);
+  check('One finger on the top plus one elsewhere = one turn', (await sent()) === base1 + 1, String((await sent()) - base1));
+
+  // ---- phone with the panel open: the top stays touchable and nothing is covered
+  await tp.waitForTimeout(3500);
+  await tp.locator('.cp-toggle').click(); await tp.waitForTimeout(500);
+  const open = await tp.evaluate(() => { const r = document.querySelector('#top .hit').getBoundingClientRect(); const pn = document.querySelector('.city-panel').getBoundingClientRect(); const sc = document.getElementById('scene').getBoundingClientRect(); return { w: r.width, h: r.height, panelTop: pn.top, sceneBottom: sc.bottom, panelH: pn.height }; });
+  check('Phone with the panel open: top ≥ 44 × 44 px (touch minimum), sheet ≤ 40% of the screen, scene not covered', open.w >= 44 && open.h >= 44 && open.panelH <= 330 && open.sceneBottom <= open.panelTop + 1, JSON.stringify({ w: open.w.toFixed(0), h: open.h.toFixed(0), panelH: open.panelH.toFixed(0) }));
+  await tp.screenshot({ path: SH + 'code-phone-open.png' });
   check('Phone: no horizontal scroll', !(await tp.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)));
   await tctx.close();
 
