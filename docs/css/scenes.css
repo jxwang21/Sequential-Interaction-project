@@ -213,6 +213,8 @@
 .s2 .clue-plaque{fill: var(--panel); stroke: var(--line);}
 .s2 .clue-plate{fill: var(--panel-in); stroke: var(--line-dim);}
 .s2 .clue-step{stroke: var(--lit);}
+.s2 .clue-haze{stroke-width: 3.4; filter: url(#clue-haze); opacity: .95;}
+.s2 .clue-ghost{opacity: .14;}
 .s2 .marks{width: calc(var(--u) * 5); height: auto; flex: none;}
 .s2 .m-ring{fill: var(--panel); stroke: var(--line);}
 .s2 .m-in{fill: var(--panel-in); stroke: var(--line-dim);}

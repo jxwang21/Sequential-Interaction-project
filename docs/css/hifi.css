@@ -214,7 +214,7 @@ li[data-state="done"] .node {
 .s2 .door.key-turn .lock-plate { stroke: #fff3c9; filter: drop-shadow(0 0 5px rgba(243, 222, 166, .8)); }
 .s2 .clue-plaque { fill: url(#hf-metal); stroke: #75757c; }
 .s2 .clue-plate { fill: url(#hf-plate); stroke: #26262a; }
-.s2 .clue-step { stroke: var(--accent-light); }
+.s2 .clue-step { stroke: var(--accent-light); }   /* both the haze and the faint ghost */
 .s2 .m-ring { fill: url(#hf-metal); stroke: #75757c; }
 .s2 .m-in { fill: url(#hf-niche); stroke: #1f1f23; }
 .s2 .m-fill { fill: url(#hf-brass); stroke: none; filter: drop-shadow(0 0 4px rgba(214, 178, 102, .75)); }

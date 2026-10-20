@@ -85,7 +85,21 @@
         <path class="d-hi" d="M9 87 V9 H263"/>
         <path class="d-lo" d="M263 9 V87 H9"/>
         <rect class="clue-plate" x="15" y="15" width="242" height="66" rx="2"/>
-        <g class="clue-step">
+        <!-- the route is deliberately hazy: a soft, slowly refocusing glow over a faint crisp ghost -->
+        <defs>
+          <filter id="clue-haze" filterUnits="userSpaceOnUse" x="0" y="0" width="272" height="96" color-interpolation-filters="sRGB">
+            <feGaussianBlur stdDeviation="3.4">
+              <animate attributeName="stdDeviation" values="2.8;5;2.8" keyTimes="0;.5;1" dur="7s" repeatCount="indefinite" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1"/>
+            </feGaussianBlur>
+          </filter>
+        </defs>
+        <g class="clue-step clue-ghost">
+          <path d="M0 16 V-16 M-11 -5 L0 -16 L11 -5" transform="translate(46 48) rotate(0)"/>
+          <path d="M0 16 V-16 M-11 -5 L0 -16 L11 -5" transform="translate(106 48) rotate(90)"/>
+          <path d="M0 16 V-16 M-11 -5 L0 -16 L11 -5" transform="translate(166 48) rotate(180)"/>
+          <path d="M0 16 V-16 M-11 -5 L0 -16 L11 -5" transform="translate(226 48) rotate(270)"/>
+        </g>
+        <g class="clue-step clue-haze">
           <path d="M0 16 V-16 M-11 -5 L0 -16 L11 -5" transform="translate(46 48) rotate(0)"/>
           <path d="M0 16 V-16 M-11 -5 L0 -16 L11 -5" transform="translate(106 48) rotate(90)"/>
           <path d="M0 16 V-16 M-11 -5 L0 -16 L11 -5" transform="translate(166 48) rotate(180)"/>
@@ -291,6 +305,12 @@
       }
 
       moon.setAttribute('aria-hidden', 'true');
+
+      // reduced motion: the haze stays at a fixed softness instead of slowly refocusing
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        var hz = document.querySelector('#clue-haze animate');
+        if (hz) hz.remove();
+      }
 
       if (window.CityPanel) panel = CityPanel.mount({ replay: replayTurn, canReplay: canReplay });
 

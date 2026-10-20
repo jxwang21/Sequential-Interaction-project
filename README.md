@@ -20,6 +20,7 @@ How it behaves:
 - **Success.** The study's own success feedback plays in full → the step's stamp is pressed onto the paper and "Completed" shows → the next step fades in automatically.
 - **Wrong input.** Each step keeps its study's "wipe and retry" behaviour, limited to the current step. Earlier stamps stay.
 - **Ending.** After step 4's success the paper shows "All steps completed" and a **Start again** button, with the four stamps kept.
+- **Hazy route clue (step 2).** The four arrows on the clue plaque are blurred on purpose: a soft glow over a faint crisp ghost that slowly drifts in and out of focus, readable but never sharp. The direction pad below stays crisp. To change it edit the `feGaussianBlur` values in `scene2.js` (`2.8;5;2.8` is the blur range, in scene units) and `.clue-haze` / `.clue-ghost` in `scenes.css`.
 - **Restart.** The small **Restart** button (and **Start again**) clears all input and stamps and returns to step 1.
 
 Step 3 was redesigned from `studies/03-place-the-letters` (tap-to-place MOON) into a drag puzzle. A wrong word shows "Not quite. Try again." with a shake for about 900 ms, then clears only this step and reshuffles all ten letters. Earlier stamps stay.
