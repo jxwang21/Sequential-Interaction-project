@@ -11,7 +11,7 @@ Live page (once GitHub Pages is enabled, see below): https://jxwang21.github.io/
 | 1 | Select the frames — press three frames in the order the 3:17 clock implies | Third correct frame: the clock cover swings open and a key appears |
 | 2 | Rotate the city — follow the four-arrow route on the direction pad | Fourth correct arrow: the door opens and shows MOON |
 | 3 | Find the word — drag five of ten scattered letters (two A's among them) into five slots; the clue is "No longer asleep." (also shown on the opened door in step 2) | The slots read AWAKE: the letters react, the others fade, the top rises and holds still |
-| 4 | Spin the top — tap the large top; every tap queues one full 360° turn (mouse, touch, Enter/Space) and every completed turn reveals the next number | **Not decided yet**: how many turns finish the sequence is an open design question, so step 4 currently just keeps counting until Restart |
+| 4 (final) | Spin the top to enter the code — the 3:17 clock is the clue; tap the top so that each round spins as many turns as the digit (1–9), then pause to reveal it; enter 3 → 1 → 7 in order | The three slots hold 3, 1, 7: the slots pulse, then the last stamp and "All steps completed" |
 
 How it behaves:
 
@@ -19,12 +19,12 @@ How it behaves:
 - **Locked order.** Later steps are not in the page until the current one succeeds (no early look, nothing to click).
 - **Success.** The study's own success feedback plays in full → the step's stamp is pressed onto the paper and "Completed" shows → the next step fades in automatically.
 - **Wrong input.** Each step keeps its study's "wipe and retry" behaviour, limited to the current step. Earlier stamps stay.
-- **Ending.** Designed as "All steps completed" plus a **Start again** button with the four stamps kept. It is wired up but cannot be reached yet, because step 4's turn target is not decided.
+- **Ending.** After step 4's success the paper shows "All steps completed" and a **Start again** button, with the four stamps kept.
 - **Restart.** The small **Restart** button (and **Start again**) clears all input and stamps and returns to step 1.
 
 Step 3 was redesigned from `studies/03-place-the-letters` (tap-to-place MOON) into a drag puzzle. A wrong word shows "Not quite. Try again." with a shake for about 900 ms, then clears only this step and reshuffles all ten letters. Earlier stamps stay.
 
-Step 4 was redesigned from `studies/04-activate-the-spinning-top` (press 3→1→7) into a tap-to-spin interaction. Turns queue and run back to back without stopping, then the top eases to rest exactly on a whole number of turns. The count is taken from the rotation actually completed, never from the taps. The old 3→1→7 logic is gone, and so is the automatic completion, so the ending screen ("All steps completed", "Start again") cannot be reached until a turn target is chosen.
+Step 4 was redesigned from `studies/04-activate-the-spinning-top` (press 3→1→7) into code entry by spinning. Every tap queues one full 360° turn (up to 9 per round); turns run back to back. When the queue is empty and nothing is tapped for the pause-to-confirm time (default 1000 ms, counted from when the top came to rest) the round is confirmed: the number of turns actually completed pops above the top and flies into the next slot. A wrong digit shows "Wrong sequence. Try again." with a shake, then clears the three slots only. The digits are never generated for the player.
 
 ## Part 2 refinement: City Motion Controls (Step 2 only)
 
@@ -46,7 +46,7 @@ Same kind of panel, shown only on step 3: snap distance (20–90 px, default 48)
 
 ## Top Spin Controls (Step 4 only)
 
-Panel shown only on step 4: turn duration (300–1500 ms, default 900), start/stop easing strength (0–100 %, 50), number rise distance (10–60 px, 30), number display time (300–1200 ms, 700) and number size (20–64 px, 36). Restore defaults and Copy settings (every value with its unit) work as in the other panels. Code: `docs/js/top-motion.js` (defaults and limits), `docs/js/top-panel.js`, `docs/js/scenes/scene4.js`.
+Panel shown only on step 4: turn duration (200–900 ms, default 600), pause to confirm (700–1800 ms, 1000), number pop height (10–60 px, 30) and number feedback time (400–1200 ms, 800). Restore defaults and Copy settings (every value with its unit) work as in the other panels. Code: `docs/js/top-motion.js` (defaults and limits), `docs/js/top-panel.js`, `docs/js/scenes/scene4.js`.
 
 ## Repository layout
 
@@ -72,7 +72,7 @@ studies/                 <- original, unmodified study sources (index.html + STU
 tests/flow.js            <- Playwright end-to-end check of the whole sequence
 tests/city-panel.js      <- Playwright checks for the Step 2 panel
 tests/letters.js         <- Playwright checks for Step 3 (drag puzzle) and its panel
-tests/top.js             <- Playwright checks for Step 4 (tap to spin) and its panel
+tests/top.js             <- Playwright checks for Step 4 (spin the top to enter the code) and its panel
 tests/helpers.js         <- shared drag helpers
 ```
 
