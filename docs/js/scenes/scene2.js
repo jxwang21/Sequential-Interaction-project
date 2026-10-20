@@ -66,6 +66,13 @@
           <rect class="p-body" x="34" y="28" width="72" height="144"/>
           <path class="d-hi" d="M37 169 V31 H103"/>
           <path class="d-lo" d="M103 31 V169 H37"/>
+          <!-- lock: plate, keyhole and a key that slides in, turns and stays in the lock while the door swings open -->
+          <g transform="translate(92 104)">
+            <circle class="lock-plate" cx="0" cy="0" r="9"/>
+            <g class="hole-turn"><circle class="hole" cx="0" cy="0" r="2.6"/><path class="hole" d="M-1.3 2 L-2 8 H2 L1.3 2 Z"/></g>
+            <g class="click"><path d="M-12 -9 L-15 -12"/><path d="M12 -9 L15 -12"/><path d="M0 -13 V-17"/></g>
+            <g class="key-slide"><g class="key-turn-g"><path class="key-shape" transform="scale(-.3 .3) translate(-170 -47)" d="M59.6 36 H170 V58 H160 V44 H148 V62 H138 V44 H59.6 A20 20 0 1 1 59.6 36 Z M32 40 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0 Z"/></g></g>
+          </g>
         </g>
       </svg>
     </div>
@@ -107,6 +114,7 @@
       // Turn / return durations and easing live in js/city-motion.js (defaults = the study's 900 ms, 1600 ms,
       // HEAVY / CONTROLLED curves). They are read when each action starts, so a change applies to the next action.
       var CM = window.CityMotion;
+      var STEP_DEG = 45;       // each correct key turns the city 45 degrees, so the four keys add up to exactly 180
 
       var stage = document.getElementById('stage');
       var city = document.getElementById('city');
@@ -170,14 +178,14 @@
         later(fin, ms + 150);
       }
 
-      // Preview one 15-degree turn from the current state without touching puzzle progress, then restore the
+      // Preview one 45-degree turn from the current state without touching puzzle progress, then restore the
       // city to where it was (using the return settings). Not an input: nothing is counted, nothing unlocks.
       function replayTurn() {
         if (!canReplay()) return false;
         previewing = true;
         setLocked(true);
         var base = angle, s = CM.get();
-        turnTo(base + 15, s.stepMs, CM.turnEase(), function () {
+        turnTo(base + 45, s.stepMs, CM.turnEase(), function () {
           later(function () {
             turnTo(base, s.returnMs, CM.returnEase(), function () {
               previewing = false;
@@ -247,18 +255,21 @@
           step++;
           var n = step;
           el.classList.add('ok');
-          turnTo(n * 15, CM.get().stepMs, CM.turnEase(), function () {
+          turnTo(n * STEP_DEG, CM.get().stepMs, CM.turnEase(), function () {
             el.classList.remove('ok');
             marks[n - 1].classList.add('on');   // fill only after the city has stopped
             if (n === SEQ.length) {
               solved = true;
               if (panel) panel.refresh();
+              // last step: input stays disabled. The key slides into the lock (0.55 s), turns it (0.4 s, with a small
+              // click), then the door swings open (1 s) and the clue shows.
+              later(function () { door.classList.add('key-in'); }, 300);
+              later(function () { door.classList.add('key-turn'); }, 300 + 700);
               later(function () {
                 door.classList.add('open');
                 moon.setAttribute('aria-hidden', 'false');
-              }, 400); // last step: input stays disabled
-              // door swing (1s) has finished and the clue is showing
-              later(api.complete, 400 + 1100);
+              }, 300 + 700 + 550);
+              later(api.complete, 300 + 700 + 550 + 1100);
             } else {
               setLocked(false);
             }

@@ -78,7 +78,7 @@ function check(name,ok,extra){results.push([ok,name,extra||'']);console.log((ok?
   await press('.s2 .btn[data-dir=right]'); await p.waitForTimeout(1100);
   s=await st();
   check('S2 incomplete (2/4): stays on step 2',s.step==='2'&&s.stamps==='1000'&&s.scenes==='scene-root s2');
-  check('S2 two dots filled, city at 30deg',await p.locator('.s2 .mark.on').count()===2&&await p.evaluate(()=>document.getElementById('city').style.getPropertyValue('--a'))==='30deg');
+  check('S2 two dots filled, city at 90deg',await p.locator('.s2 .mark.on').count()===2&&await p.evaluate(()=>document.getElementById('city').style.getPropertyValue('--a'))==='90deg');
   await press('.s2 .btn[data-dir=up]'); // wrong (expected down)
   await p.waitForTimeout(100);
   const errNow=await p.locator('.s2 .btn.err').count()===1;
@@ -87,13 +87,17 @@ function check(name,ok,extra){results.push([ok,name,extra||'']);console.log((ok?
   await p.waitForTimeout(2000);
   s=await st();
   check('S2 wrong: city returned to 0deg, still step 2, stamp 1 kept',await p.evaluate(()=>document.getElementById('city').style.getPropertyValue('--a'))==='0deg'&&s.step==='2'&&s.stamps==='1000');
-  for(const d of ['up','right','down','left']){await press('.s2 .btn[data-dir='+d+']');await p.waitForTimeout(1050);}
+  await p.evaluate(()=>{window.__door=[];const d=document.querySelector('.s2 .door');const seen={};new MutationObserver(()=>{['key-in','key-turn','open'].forEach(c=>{if(d.classList.contains(c)&&!seen[c]){seen[c]=1;window.__door.push(c)}})}).observe(d,{attributes:true,attributeFilter:['class']})});
+  const angles=[];
+  for(const d of ['up','right','down','left']){await press('.s2 .btn[data-dir='+d+']');await p.waitForTimeout(1050);angles.push(await p.evaluate(()=>document.getElementById('city').style.getPropertyValue('--a')))}
+  check('S2: the four keys turn the city 45, 90, 135 and exactly 180 degrees',angles.join()==='45deg,90deg,135deg,180deg',angles.join());
   await p.waitForTimeout(500);
   s=await st();
-  check('S2 last press: still step 2 while door opens',s.step==='2'&&s.phase==='playing',s.phase);
+  check('S2 last press: still step 2 while the key unlocks the door',s.step==='2'&&s.phase==='playing',s.phase);
   await waitPhase('completing','2');
   s=await st();
   check('S2 success: door open, stamp 2, Completed',s.stamps==='1100'&&s.status==='completed'&&await p.locator('.s2 .door.open').count()===1);
+  check('S2 door: key slides in, turns in the lock, and only then the door opens (in that order)',(await p.evaluate(()=>window.__door)).join()==='key-in,key-turn,open',(await p.evaluate(()=>window.__door)).join());
   await p.screenshot({path:SH+'s2-completed.png'});
   await waitPhase('playing','3');
   s=await st();

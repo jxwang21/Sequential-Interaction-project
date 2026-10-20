@@ -3,7 +3,7 @@
    DEFAULTS are the saved defaults: they equal the original study's behaviour. */
 (function () {
   var DEFAULTS = {
-    stepMs: 900,       // one 15-degree turn after a correct press (study: STEP_MS)
+    stepMs: 900,       // one 45-degree turn after a correct press (study: STEP_MS)
     returnMs: 1600,    // return to 0 degrees after a wrong press (study: RETURN_MS)
     ease: 'original'   // key of EASINGS
   };

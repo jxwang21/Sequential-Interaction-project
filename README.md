@@ -36,7 +36,7 @@ A floating, collapsible panel appears **only on step 2** (Rotate the city) so th
 | Return duration (after a wrong press) | 500–2500 ms | 1600 ms |
 | Turn easing | Original, Linear, Ease In, Ease Out, Ease In-Out, Spring/Bounce | Original (turn `cubic-bezier(.55,0,.3,1)`, return `cubic-bezier(.45,0,.25,1)`) |
 
-Any easing other than Original is applied to both the turn and the return. Buttons: **Replay turn** (previews one 15° turn, then restores the city; changes no progress and unlocks nothing), **Restore defaults**, **Copy settings** (copies the component name, values with units and the apply-and-commit instruction). Values are kept for the page session only.
+Any easing other than Original is applied to both the turn and the return. Buttons: **Replay turn** (previews one 45° turn, then restores the city; changes no progress and unlocks nothing), **Restore defaults**, **Copy settings** (copies the component name, values with units and the apply-and-commit instruction). Values are kept for the page session only.
 
 Code: `docs/js/city-motion.js` (defaults, limits, easings; edit `DEFAULTS` to change the saved defaults), `docs/js/city-panel.js` + `docs/js/tuning-panel.js` + `docs/css/panel.css` (the panel), `docs/js/scenes/scene2.js` (reads the settings). To remove the panel later, delete the `CityPanel.mount(...)` line in `scene2.js`.
 

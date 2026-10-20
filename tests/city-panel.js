@@ -69,7 +69,7 @@ function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 
   // default behaviour unchanged: first correct press uses 900ms + HEAVY
   let m = await record(() => dir('up'), 1300);
   let cv = await cityVars();
-  check('Default turn: --dur 900ms, original HEAVY curve, 15deg', cv.dur === '900ms' && cv.ease === 'cubic-bezier(.55,0,.3,1)' && cv.a === '15deg', JSON.stringify(cv));
+  check('Default turn: --dur 900ms, original HEAVY curve, 45deg', cv.dur === '900ms' && cv.ease === 'cubic-bezier(.55,0,.3,1)' && cv.a === '45deg', JSON.stringify(cv));
   check('Default turn: lock released when the city stops (≈900ms)', Math.abs(m.unlock - 900) < 120 && Math.abs(m.unlock - m.lastMove) < 90, JSON.stringify(m));
   check('Progress: 1 dot filled', await marksOn() === 1);
 
@@ -79,7 +79,7 @@ function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 
   m = await record(() => dir('right'), 900);
   cv = await cityVars();
   check('Turn 300ms: --dur 300ms and lock ≈ animation end', cv.dur === '300ms' && Math.abs(m.unlock - 300) < 120 && Math.abs(m.unlock - m.lastMove) < 90, JSON.stringify({ cv, m }));
-  check('Turn 300ms: progress 2 dots, angle 30deg', await marksOn() === 2 && cv.a === '30deg');
+  check('Turn 300ms: progress 2 dots, angle 90deg', await marksOn() === 2 && cv.a === '90deg');
   await p.screenshot({ path: SH + 'panel-turn300.png' });
 
   // input during the animation is ignored (slow setting)
@@ -89,7 +89,7 @@ function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 
   check('Turn 1800ms: still locked mid-animation', await locked());
   await dir('left').catch(() => {});   // clicking while locked must be ignored
   await p.waitForTimeout(200);
-  check('Input during the 1800ms turn is ignored (still 2 dots, angle 45deg, no completion)', await marksOn() === 2 && (await cityVars()).a === '45deg');
+  check('Input during the 1800ms turn is ignored (still 2 dots, angle 135deg, no completion)', await marksOn() === 2 && (await cityVars()).a === '135deg');
   await p.waitForTimeout(1400);
   check('After 1800ms the third dot fills and input is accepted again', await marksOn() === 3 && !(await locked()));
   check('Turn 1800ms used --dur 1800ms', (await cityVars()).dur === '1800ms');
@@ -103,7 +103,7 @@ function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 
   check('Replay: pad is locked while previewing and Replay disabled', await locked() && await p.locator('#cp-replay').isDisabled());
   await p.waitForTimeout(500);
   const mid = (await cityVars()).a;
-  check('Replay: city turns one extra 15deg (45→60deg)', mid === '60deg', mid);
+  check('Replay: city turns one extra 45deg (135→180deg)', mid === '180deg', mid);
   await p.waitForTimeout(250 + 1600 + 400);
   const after = { marks: await marksOn(), a: (await cityVars()).a };
   check('Replay: city restored to the previous angle, progress unchanged, input unlocked', after.a === before.a && after.marks === before.marks && !(await locked()) && !(await p.locator('#cp-replay').isDisabled()), JSON.stringify({ before, after }));
@@ -146,12 +146,12 @@ function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 
   await dir('up'); await p.waitForTimeout(550);
   const sp = (await cityVars()).ease;
   check('Easing "Spring/Bounce": overshoot curve (linear() or cubic-bezier fallback)', /^linear\(/.test(sp) || /^cubic-bezier\(\.34,1\.56/.test(sp), sp.slice(0, 40));
-  // spring really overshoots 15deg
+  // spring really overshoots the 45deg step
   await dir('up'); await p.waitForTimeout(500);
   await p.waitForFunction(() => !document.getElementById('stage').classList.contains('is-locked'), null, { timeout: 5000 });
   await setRange('cp-step', 1000);
   const peak = await record(async () => { await dir('up'); }, 1400).then(() => p.evaluate(() => Math.max(...window.__rec.map(s => s.a))));
-  check('Spring/Bounce: the city overshoots the 15° target (peak > 15.5°)', peak > 15.5, peak.toFixed(2));
+  check('Spring/Bounce: the city overshoots the 45° target (peak > 46°)', peak > 46, peak.toFixed(2));
   await p.screenshot({ path: SH + 'panel-spring.png' });
 
   // ---------- restore defaults

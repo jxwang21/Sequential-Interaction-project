@@ -194,6 +194,21 @@
   will-change: transform;}
 .s2 .door.open .panel{transform: rotateY(-104deg); transition: transform 1s cubic-bezier(.5, 0, .3, 1);}
 .s2 .p-body{fill: var(--panel); stroke: var(--line);}
+
+/* key and lock on the door panel */
+.s2 .lock-plate{fill: var(--panel-in); stroke: var(--line-dim); transition: stroke .2s ease .35s;}
+.s2 .hole{fill: var(--niche); stroke: var(--line);}
+.s2 .hole-turn{transform-origin: 0 0; transition: transform .4s cubic-bezier(.45, 0, .25, 1);}
+.s2 .key-slide{opacity: 0; transform: translateX(34px); transition: opacity .2s ease, transform .55s cubic-bezier(.3, 0, .2, 1);}
+.s2 .key-turn-g{transform-origin: 0 0; transition: transform .4s cubic-bezier(.45, 0, .25, 1);}
+.s2 .key-shape{fill: var(--panel-in); fill-rule: evenodd; stroke: var(--lit);}
+.s2 .click{opacity: 0; stroke: var(--bright);}
+.s2 .door.key-in .key-slide{opacity: 1; transform: translateX(0);}
+.s2 .door.key-turn .key-turn-g{transform: rotate(-90deg);}
+.s2 .door.key-turn .hole-turn{transform: rotate(90deg);}
+.s2 .door.key-turn .lock-plate{stroke: var(--bright);}
+.s2 .door.key-turn .click{animation: s2click .35s ease-out .32s 1 both;}
+@keyframes s2click{0%{opacity: 0;} 30%{opacity: 1;} 100%{opacity: 0;}}
 .s2 .clue{width: calc(var(--u) * 8); height: auto; flex: none;}
 .s2 .clue-plaque{fill: var(--panel); stroke: var(--line);}
 .s2 .clue-plate{fill: var(--panel-in); stroke: var(--line-dim);}
@@ -265,6 +280,10 @@
 .s2 .door.open .panel,
 .s2 .door-clue,
 .s2 .door.open .door-clue,
+.s2 .hole-turn,
+.s2 .key-slide,
+.s2 .key-turn-g,
+.s2 .lock-plate,
 .s2 .m-fill,
 .s2 .mark.on .m-fill,
 .s2 .b-body,
