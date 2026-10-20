@@ -2,6 +2,7 @@
    Usage:  python3 -m http.server 8123 --directory docs &  then  SHOTS=/tmp node tests/flow.js [url]
    Needs the `playwright` package and a Chromium (set CHROME=/path/to/chrome if it is not auto-detected). */
 const { chromium } = require('playwright');
+const H = require('./helpers');
 const SH=(process.env.SHOTS||'.')+'/';
 const URL=process.argv[2]||'http://localhost:8123/index.html';  // serve /docs first, e.g. python3 -m http.server 8123 --directory docs
 const results=[];
@@ -100,20 +101,23 @@ function check(name,ok,extra){results.push([ok,name,extra||'']);console.log((ok?
   check('Same paper after step 3',await samePaper());
   await p.waitForTimeout(600); await p.screenshot({path:SH+'s3.png'});
 
-  // ---- STEP 3: tiles 0 N,1 O,2 O,3 M. wrong word NOOM first
-  const tile=i=>`#tile-${i}`;
-  const placeTile=async(i)=>{await p.locator(tile(i)).click({force:true});await p.waitForTimeout(1050)};
-  await placeTile(0); await placeTile(1);
+  // ---- STEP 3: drag five of ten letters into five slots (word AWAKE)
+  const topOpacity=()=>p.evaluate(()=>+getComputedStyle(document.getElementById('top')).opacity);
+  let id=await H.idsFor(p);
+  await H.dragToSlot(p,id.A1,0); await H.settle(p); await H.dragToSlot(p,id.W,1); await H.settle(p);
   s=await st();
-  check('S3 incomplete (2/4 placed): stays on step 3',s.step==='3'&&s.stamps==='1100'&&await p.evaluate(()=>+getComputedStyle(document.getElementById('top')).opacity)<0.05);
-  await placeTile(2); await placeTile(3); // N O O M -> wrong
-  await p.waitForTimeout(2700);
+  check('S3 incomplete (2/5 placed): stays on step 3, no judgement, top hidden',s.step==='3'&&s.stamps==='1100'&&s.phase==='playing'&&await topOpacity()<0.05&&await p.locator('#msg.show').count()===0);
+  await H.dragToSlot(p,id.M,2); await H.settle(p); await H.dragToSlot(p,id.O,3); await H.settle(p); await H.dragToSlot(p,id.N,4);
+  await p.waitForTimeout(500);
+  check('S3 wrong word: "Not quite. Try again." shown',await p.locator('#msg.show').count()===1);
+  await p.waitForTimeout(2200);
   s=await st();
-  check('S3 wrong word: tiles returned, top hidden, still step 3, stamps kept',s.step==='3'&&s.stamps==='1100'&&await p.locator('.s3 .tile.free').count()===4&&await p.evaluate(()=>+getComputedStyle(document.getElementById('top')).opacity)<0.05,JSON.stringify(s));
-  for(const i of [3,1,2,0]) await placeTile(i);
+  check('S3 wrong word: letters back in rack, top hidden, still step 3, stamps kept',s.step==='3'&&s.stamps==='1100'&&(await H.tileInfo(p)).every(t=>t.loc.startsWith('rack'))&&await topOpacity()<0.05,JSON.stringify(s));
+  id=await H.idsFor(p);
+  await H.fillAwake(p);
   await p.waitForTimeout(300);
   s=await st();
-  check('S3 right word placed: step 3 still playing while top rises',s.step==='3'&&s.phase==='playing');
+  check('S3 right word placed: step 3 still playing while the top rises',s.step==='3'&&s.phase==='playing');
   await p.screenshot({path:SH+'s3-rising.png'});
   await waitPhase('completing','3',12000);
   s=await st();
@@ -169,7 +173,7 @@ function check(name,ok,extra){results.push([ok,name,extra||'']);console.log((ok?
   await waitPhase('playing','2',15000); await p.waitForTimeout(500);
   for(const d of ['up','right','down','left']){await press('.s2 .btn[data-dir='+d+']');await p.waitForTimeout(1050);}
   await waitPhase('playing','3',15000); await p.waitForTimeout(500);
-  for(const i of [3,1,2,0]) await placeTile(i);
+  await H.fillAwake(p);
   await waitPhase('playing','4',15000); await p.waitForTimeout(500);
   await press(mk(3));
   await press(mk(7)); // wrong (expected 1)

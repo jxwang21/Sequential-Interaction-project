@@ -10,7 +10,7 @@ Live page (once GitHub Pages is enabled, see below): https://jxwang21.github.io/
 |---|---|---|
 | 1 | Select the frames — press three frames in the order the 3:17 clock implies | Third correct frame: the clock cover swings open and a key appears |
 | 2 | Rotate the city — follow the four-arrow route on the direction pad | Fourth correct arrow: the door opens and shows MOON |
-| 3 | Place the letters — place N, O, O, M tiles to spell the word shown in the reflection | Word is MOON: the top rises and holds still |
+| 3 | Find the word — drag five of ten scattered letters (two A's among them) into five slots; the clue is "No longer asleep." (also shown on the opened door in step 2) | The slots read AWAKE: the letters react, the others fade, the top rises and holds still |
 | 4 (final) | Activate the spinning top — press the numbered marks in the order the clock implies | Third correct mark: the top spins up and keeps spinning |
 
 How it behaves:
@@ -21,6 +21,8 @@ How it behaves:
 - **Wrong input.** Each step keeps its study's "wipe and retry" behaviour, limited to the current step. Earlier stamps stay.
 - **Ending.** After step 4's feedback the paper shows "All steps completed" and a **Start again** button. The four stamps stay and the top keeps spinning.
 - **Restart.** The small **Restart** button (and **Start again**) clears all input and stamps and returns to step 1.
+
+Step 3 was redesigned from `studies/03-place-the-letters` (tap-to-place MOON) into a drag puzzle. A wrong word shows "Not quite. Try again." with a shake for about 900 ms, then clears only this step and reshuffles all ten letters. Earlier stamps stay.
 
 Step 4 is not a copy of step 1: it shares the 3:17 clock and the same 3→1→7 answer, but has numbered marks (laid out 1, 7, 3), a quicker error wipe (250 ms), a pulse on the last mark, and the spinning top as its feedback.
 
@@ -36,7 +38,11 @@ A floating, collapsible panel appears **only on step 2** (Rotate the city) so th
 
 Any easing other than Original is applied to both the turn and the return. Buttons: **Replay turn** (previews one 15° turn, then restores the city; changes no progress and unlocks nothing), **Restore defaults**, **Copy settings** (copies the component name, values with units and the apply-and-commit instruction). Values are kept for the page session only.
 
-Code: `docs/js/city-motion.js` (defaults, limits, easings; edit `DEFAULTS` to change the saved defaults), `docs/js/city-panel.js` + `docs/css/panel.css` (the panel), `docs/js/scenes/scene2.js` (reads the settings). To remove the panel later, delete the `CityPanel.mount(...)` line in `scene2.js`.
+Code: `docs/js/city-motion.js` (defaults, limits, easings; edit `DEFAULTS` to change the saved defaults), `docs/js/city-panel.js` + `docs/js/tuning-panel.js` + `docs/css/panel.css` (the panel), `docs/js/scenes/scene2.js` (reads the settings). To remove the panel later, delete the `CityPanel.mount(...)` line in `scene2.js`.
+
+## Letter Interaction Controls (Step 3 only)
+
+Same kind of panel, shown only on step 3: snap distance (20–90 px, default 48), snap duration (80–600 ms, 200), return duration (100–900 ms, 400; also used for take-outs and the reset after a wrong word), drag lift (0–20 px, 8), easing (Original, Linear, Ease In, Ease Out, Ease In-Out, Spring/Bounce) and error feedback duration (500–1500 ms, 900). Restore defaults and Copy settings (every value with its unit) work as in step 2. Code: `docs/js/letter-motion.js` (defaults and limits), `docs/js/letter-panel.js`, `docs/js/scenes/scene3.js`.
 
 ## Repository layout
 
@@ -49,6 +55,9 @@ docs/                    <- the published site (GitHub Pages source)
   js/app.js              <- sequence controller (unlock, stamps, transitions, restart)
   js/city-motion.js      <- Step 2 motion settings (defaults, limits, easings)
   js/city-panel.js       <- "City Motion Controls" panel (Step 2 only)
+  js/tuning-panel.js     <- generic panel used by both tuning panels
+  js/letter-motion.js    <- Step 3 interaction settings (defaults, limits, easings)
+  js/letter-panel.js     <- "Letter Interaction Controls" panel (Step 3 only)
   css/panel.css          <- panel styles
   js/scenes/scene1-4.js  <- the four studies ported as scenes (markup + original behaviour)
   fonts/jost-300.ttf     <- Jost Light, bundled (used for "MOON")
@@ -56,6 +65,8 @@ studies/                 <- original, unmodified study sources (index.html + STU
 *.zip                    <- original study ZIPs, untouched
 tests/flow.js            <- Playwright end-to-end check of the whole sequence
 tests/city-panel.js      <- Playwright checks for the Step 2 panel
+tests/letters.js         <- Playwright checks for Step 3 (drag puzzle) and its panel
+tests/helpers.js         <- shared drag helpers
 ```
 
 The site is plain HTML/CSS/JS — **no build step**. The files in `docs/` are the editable source. All asset paths are relative.

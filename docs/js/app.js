@@ -9,7 +9,7 @@
   var HINTS = [
     'Read the clock, then press the frames in the matching order.',
     'Follow the route clue with the direction pad.',
-    'Place the letters to spell the word in the reflection.',
+    'Drag five letters into the slots to form the word.',
     'Final step: read the clock and press the marks in the right order.'
   ];
   var COMPLETED_HOLD = 1100;   // "Completed" is shown this long before the next step takes over

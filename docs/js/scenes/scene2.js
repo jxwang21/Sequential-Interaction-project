@@ -57,8 +57,9 @@
           <rect class="d-open" x="32" y="26" width="76" height="148"/>
         </g>
       </svg>
-      <svg class="moon" id="moon" viewBox="0 0 140 200" aria-hidden="true">
-        <text x="72" y="100" text-anchor="middle" dominant-baseline="central">MOON</text>
+      <svg class="door-clue" id="door-clue" viewBox="0 0 140 200" aria-hidden="true">
+        <text x="72" y="88" text-anchor="middle" dominant-baseline="central">No longer</text>
+        <text x="72" y="108" text-anchor="middle" dominant-baseline="central">asleep.</text>
       </svg>
       <svg class="panel" viewBox="0 0 140 200" aria-hidden="true">
         <g id="door-panel">
@@ -110,7 +111,7 @@
       var stage = document.getElementById('stage');
       var city = document.getElementById('city');
       var door = document.getElementById('door');
-      var moon = document.getElementById('moon');
+      var moon = document.getElementById('door-clue');
       var pad = document.getElementById('pad');
       var marks = Array.prototype.slice.call(document.querySelectorAll('.mark'));
       var buttons = [];
@@ -256,7 +257,7 @@
                 door.classList.add('open');
                 moon.setAttribute('aria-hidden', 'false');
               }, 400); // last step: input stays disabled
-              // door swing (1s) has finished and MOON is showing
+              // door swing (1s) has finished and the clue is showing
               later(api.complete, 400 + 1100);
             } else {
               setLocked(false);

@@ -232,7 +232,7 @@ function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 
   check('Panel Replay disabled once solved', await p.locator('#cp-replay').isDisabled());
   await waitStep(3);
   await p.waitForTimeout(500);
-  check('Step 3 reached; panel removed; body classes cleaned', await panelCount() === 0 && !(await p.evaluate(() => document.body.className.includes('city-panel'))));
+  check('Step 3 reached; City Motion Controls removed (step 3 has its own Letter panel)', await p.locator('aside[aria-label="City Motion Controls"]').count() === 0 && await p.locator('aside[aria-label="Letter Interaction Controls"]').count() === 1);
   check('Same paper element kept', true);
   // back to step 2 through Restart: panel returns with the session values
   await p.locator('#restart').click(); await p.waitForTimeout(700);

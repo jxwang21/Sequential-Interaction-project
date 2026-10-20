@@ -63,7 +63,7 @@
 }
 
 .cp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.cp-wide { grid-column: 1 / -1; }
+.cp-wide:nth-child(odd) { grid-column: 1 / -1; }
 .cp-btn {
   height: 34px;
   padding: 0 8px;
@@ -109,7 +109,7 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .cp-body { grid-template-columns: 1fr 1fr; gap: 10px 14px; }
-  .cp-body .cp-field:nth-child(3), .cp-actions, .cp-note { grid-column: 1 / -1; }
+  .cp-body .cp-span, .cp-actions, .cp-note { grid-column: 1 / -1; }
   .cp-actions { grid-template-columns: repeat(3, 1fr); }
   .cp-wide { grid-column: auto; }
   body.has-city-panel { padding-bottom: calc(var(--cp-bottom, 0px) + 4px); }

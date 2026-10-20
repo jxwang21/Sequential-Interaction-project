@@ -180,14 +180,14 @@
 .s2 .d-hi{stroke: var(--bevel-hi);}
 .s2 .d-lo{stroke: var(--bevel-lo);}
 .s2 .d-open{fill: var(--niche); stroke: var(--line-dim);}
-.s2 .moon{opacity: 0; transition: opacity .15s ease .45s;}
-.s2 .moon text{fill: var(--lit);
+.s2 .door-clue{opacity: 0; transition: opacity .15s ease .45s;}
+.s2 .door-clue text{fill: var(--lit);
   stroke: none;
   font-family: 'Jost', 'Helvetica Neue', Arial, sans-serif;
   font-weight: 300;
-  font-size: 15px;
-  letter-spacing: 4px;}
-.s2 .door.open .moon{opacity: 1; transition: opacity 0s;}
+  font-size: 11px;
+  letter-spacing: 1px;}
+.s2 .door.open .door-clue{opacity: 1; transition: opacity 0s;}
 .s2 .panel{transform-origin: 24.3% 50%;
   transform: rotateY(0deg);
   transition: transform .6s ease-in-out;
@@ -263,8 +263,8 @@
 .s2 .city{transition-duration: .01s !important;}
 .s2 .panel,
 .s2 .door.open .panel,
-.s2 .moon,
-.s2 .door.open .moon,
+.s2 .door-clue,
+.s2 .door.open .door-clue,
 .s2 .m-fill,
 .s2 .mark.on .m-fill,
 .s2 .b-body,
@@ -274,16 +274,15 @@
 .s2 .b-arrow{transition-duration: .01s !important; transition-delay: 0s !important;}
 }
 
-.s3{--s:min(calc(100cqw / 440), calc(100cqh / 380), 1.4px);}
+.s3{--s:min(calc(100cqw / 440), calc(100cqh / 510), 1.4px);}
 
-/* ===== Step 3: ported from studies/03-place-the-letters (rules prefixed with .s3) ===== */
+/* ===== Step 3: redesigned as a drag puzzle (ten letters, five slots); tile look and top come from studies/03-place-the-letters ===== */
 .s3 .stage{box-sizing: border-box;
   height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;}
@@ -291,47 +290,56 @@
 .s3 svg *{vector-effect: non-scaling-stroke;}
 .s3 .scene{flex: none;
   width: calc(var(--s) * 440);
-  height: calc(var(--s) * 380);
+  height: calc(var(--s) * 510);
   overflow: visible;
-  touch-action: manipulation;}
-.s3 .slot{fill: var(--niche); stroke: var(--line-dim);}
-.s3 .refl{stroke: var(--reflect);}
+  touch-action: none;}
+
+.s3 .clue{fill: var(--lit); stroke: none; font-family: 'Jost', 'Helvetica Neue', Arial, sans-serif; font-weight: 300; font-size: 19px; letter-spacing: 1.5px;}
+.s3 .msg{fill: var(--bright); stroke: none; font-family: 'Jost', 'Helvetica Neue', Arial, sans-serif; font-weight: 300; font-size: 18px; letter-spacing: 1.2px; opacity: 0; transition: opacity .15s ease;}
+.s3 .msg.show{opacity: 1;}
+
+/* slots: flat dim outline; brighter while a tile is about to snap into it */
+.s3 .slot{fill: var(--niche); stroke: var(--line-dim); transition: stroke .12s ease, fill .12s ease;}
+.s3 .slot.hot{stroke: var(--bright); fill: #1a1a1a;}
+
+/* tiles */
 .s3 .tile{--c-fill: var(--panel);
   --c-edge: var(--line);
   --c-glyph: var(--lit);
   outline: none;
-  cursor: pointer;
-  transition: opacity .35s ease;}
-.s3 .tile:not(.free){cursor: default;}
+  cursor: grab;
+  transition: opacity .5s ease;}
+.s3 .scene.is-locked .tile{cursor: default;}
+.s3 .tile.drag{cursor: grabbing;}
 .s3 .t-shadow{fill: var(--shade); stroke: none; opacity: .22;}
-.s3 .t-outer{fill: var(--c-fill); stroke: var(--c-edge); transition: stroke .3s ease;}
+.s3 .t-outer{fill: var(--c-fill); stroke: var(--c-edge); transition: stroke .15s ease;}
 .s3 .t-hi{stroke: var(--bevel-hi);}
 .s3 .t-lo{stroke: var(--bevel-lo);}
-.s3 .t-plate{fill: var(--panel-in); stroke: var(--line-dim); transition: stroke .3s ease;}
-.s3 .t-glyph{stroke: var(--c-glyph); transition: stroke .3s ease;}
+.s3 .t-plate{fill: var(--panel-in); stroke: var(--line-dim); transition: stroke .15s ease;}
+.s3 .t-glyph{stroke: var(--c-glyph); transition: stroke .15s ease;}
 .s3 .hit{fill: transparent; stroke: none; pointer-events: all;}
 @media (hover: hover){
-.s3 .scene:not(.is-locked) .tile.free:hover{--c-edge: var(--line-hi);}
+.s3 .scene:not(.is-locked) .tile:not(.drag):hover{--c-edge: var(--line-hi);}
 }
-.s3 .tile.free:focus-visible{--c-edge: var(--bright);}
-.s3 .tile.wait{opacity: .6;}
-.s3 .tile.down{--c-edge: var(--bright); --c-glyph: var(--bright);}
+.s3 .tile:focus-visible{--c-edge: var(--bright);}
+.s3 .tile.drag{--c-edge: var(--bright); --c-glyph: var(--bright);}
 .s3 .tile.done{--c-edge: var(--line-hi); --c-glyph: var(--bright);}
-.s3 .tile.wrong{--c-edge: #444444; --c-glyph: #a8a8a8;}
-.s3 .tile.wrong .t-plate{stroke: #333333;}
+.s3 .tile.fade{opacity: 0; pointer-events: none;}
+
+/* spinning top (stationary) */
 .s3 #top{opacity: 0;}
 .s3 .top-handle{fill: var(--panel); stroke: var(--line);}
 .s3 .top-cone{fill: var(--panel); stroke: var(--line);}
 .s3 .top-edge{stroke: var(--bevel-hi);}
 .s3 .top-band{stroke: var(--line-dim);}
 .s3 .top-disc{fill: var(--panel-in); stroke: var(--line);}
-@media (hover: hover){
-}
 @media (prefers-reduced-motion: reduce){
 .s3 .tile,
 .s3 .t-outer,
 .s3 .t-plate,
-.s3 .t-glyph{transition-duration: .01s !important;}
+.s3 .t-glyph,
+.s3 .slot,
+.s3 .msg{transition-duration: .01s !important;}
 }
 
 .s4{--s:min(calc(100cqw / 360), calc(100cqh / 400), 1.6px);}
