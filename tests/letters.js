@@ -260,14 +260,14 @@ function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 
     const rr = await timeToSettle(id.A1, 0, 44);
     const s = rr.rec.filter(q => q.t >= rr.t0).find(q => q.t - rr.t0 >= 300);
     const prog = 1 - rr.d(s) / rr.total;
-    const over = Math.max(...rr.rec.filter(q => q.t >= rr.t0).map(q => (rr.target.cy - q.v[1]) / (rr.target.cy - (rr.target.cy + 44 * sc)) )) ;
+    const over = Math.min(...rr.rec.filter(q => q.t >= rr.t0).map(q => (q.v[1] - rr.target.cy) / (44 * sc)));   // remaining fraction; < 0 means it passed the slot centre
     await H.dragTo(p, id.A1, S0[0].cx, S0[0].cy + 220 * sc); await H.settle(p, 900);
     return { prog, over };
   };
   const lin = await mid('linear'), eo = await mid('easeOut'), ei = await mid('easeIn'), sp = await mid('spring');
   check('Easing Linear: half way at half time', lin.prog > 0.4 && lin.prog < 0.6, lin.prog.toFixed(2));
   check('Easing Ease Out is further along than Linear at half time; Ease In is behind', eo.prog > lin.prog + 0.1 && ei.prog < lin.prog - 0.1, eo.prog.toFixed(2) + ' / ' + ei.prog.toFixed(2));
-  check('Easing Spring/Bounce overshoots the slot centre', sp.over > 1.03 || sp.over < -1.03 || true, 'progress along path max ' + sp.over.toFixed(2));
+  check('Easing Spring/Bounce overshoots the slot centre (and Linear / Ease Out do not)', sp.over < -0.03 && lin.over > -0.02 && eo.over > -0.02, 'spring min remaining ' + sp.over.toFixed(2) + ', linear ' + lin.over.toFixed(2) + ', ease out ' + eo.over.toFixed(2));
   await p.selectOption('#lp-ease', 'original');
 
   // return duration
