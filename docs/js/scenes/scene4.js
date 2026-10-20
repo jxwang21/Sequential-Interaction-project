@@ -295,7 +295,7 @@
         if (animating()) raf = requestAnimationFrame(frame);
       }
       function ensureLoop() {
-        if (raf) return;
+        if (raf || inFrame) return;                              // inside a frame the loop reschedules itself: never start a second one
         last = performance.now();
         raf = requestAnimationFrame(frame);
       }

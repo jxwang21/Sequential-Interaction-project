@@ -123,6 +123,7 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   const midWait = await rd();
   await taps(1, 0);                                            // extends the current round
   await waitEntered(2);
+  await p.waitForTimeout(1100);                                // keep recording through the error feedback
   s = await stopRec();
   const iw2 = first(s, x => x.ph === 'waiting'), ic2 = first(s, x => x.ph === 'feedback');
   const second = first(s, x => x.ph === 'spinning', iw2);
@@ -314,7 +315,7 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   const t1 = await tp.evaluate(() => { const t = document.getElementById('top'); return { round: +t.dataset.round, q: +t.dataset.queued }; });
   check('One touch = exactly one turn (not counted twice)', t1.round === 1 && t1.q === 0, JSON.stringify(t1));
   await tp.touchscreen.tap(tbox.x, tbox.y); await tp.waitForTimeout(150); await tp.touchscreen.tap(tbox.x, tbox.y);
-  await tp.waitForTimeout(2200);
+  await tp.waitForTimeout(1500);                                // 3 turns done, still inside the confirm pause
   const t3 = await tp.evaluate(() => +document.getElementById('top').dataset.round);
   check('Two more touches in quick succession = 2 more turns in the same round (3 total)', t3 === 3, String(t3));
   await tp.screenshot({ path: SH + 'code-phone.png' });
