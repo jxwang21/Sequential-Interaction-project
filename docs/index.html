@@ -9,8 +9,33 @@
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/scenes.css">
   <link rel="stylesheet" href="css/panel.css">
+  <link rel="stylesheet" href="css/hifi.css">
 </head>
 <body>
+  <!-- shared high-fidelity materials, referenced from css/hifi.css as url(#hf-...) -->
+  <svg class="hf-defs" width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+    <defs>
+      <linearGradient id="hf-metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4b4b51"/><stop offset=".5" stop-color="#2b2b2f"/><stop offset="1" stop-color="#1c1c1f"/></linearGradient>
+      <radialGradient id="hf-metal-r" cx=".35" cy=".28" r=".85"><stop offset="0" stop-color="#5a5a61"/><stop offset=".55" stop-color="#2b2b2f"/><stop offset="1" stop-color="#17171a"/></radialGradient>
+      <linearGradient id="hf-face" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3f3f45"/><stop offset=".55" stop-color="#27272b"/><stop offset="1" stop-color="#1d1d20"/></linearGradient>
+      <linearGradient id="hf-plate" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#111113"/><stop offset="1" stop-color="#1d1d21"/></linearGradient>
+      <linearGradient id="hf-niche" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#070708"/><stop offset="1" stop-color="#161619"/></linearGradient>
+      <radialGradient id="hf-dial" cx=".5" cy=".42" r=".7"><stop offset="0" stop-color="#2a2a2f"/><stop offset="1" stop-color="#0d0d0f"/></radialGradient>
+      <linearGradient id="hf-brass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6e3a8"/><stop offset=".45" stop-color="#cba44f"/><stop offset="1" stop-color="#8c6a2a"/></linearGradient>
+      <linearGradient id="hf-glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".17"/><stop offset=".5" stop-color="#fff" stop-opacity=".02"/><stop offset="1" stop-color="#fff" stop-opacity=".09"/></linearGradient>
+      <linearGradient id="hf-building" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#404046"/><stop offset="1" stop-color="#1b1b1e"/></linearGradient>
+      <linearGradient id="hf-door" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#37373d"/><stop offset="1" stop-color="#1d1d20"/></linearGradient>
+      <linearGradient id="hf-cone" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#17171a"/><stop offset=".32" stop-color="#505058"/><stop offset=".46" stop-color="#6e6e76"/><stop offset=".72" stop-color="#2c2c31"/><stop offset="1" stop-color="#111113"/></linearGradient>
+      <radialGradient id="hf-disc" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#5e5e66"/><stop offset="1" stop-color="#1c1c20"/></radialGradient>
+      <!-- rubber-stamp ink: breaks the fill up with noise and roughens the edge -->
+      <filter id="hf-ink" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="4" result="n"/>
+        <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.7" result="m"/>
+        <feComposite in="SourceGraphic" in2="m" operator="in" result="inked"/>
+        <feDisplacementMap in="inked" in2="n" scale="1.4" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
   <main class="paper" id="paper" data-step="1" data-phase="playing" aria-label="Puzzle paper">
     <header class="paper-head">
       <h1 class="step-label" id="step-label">Step 1 of 4</h1>

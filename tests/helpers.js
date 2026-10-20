@@ -55,6 +55,7 @@ async function toStep4(p) {
 // step 4: tap the top n times (one round) and wait until the digit has been confirmed and has landed in its slot
 async function enterDigit(p, n, gap = 70) {
   const count = () => p.evaluate(() => { const s = document.getElementById('scene'); return s ? s.dataset.entered.split(',').filter(Boolean).length : -1; });
+  await p.waitForFunction(() => { const t = document.getElementById('top'); return t && t.dataset.phase === 'idle'; }, null, { timeout: 15000 });   // the previous feedback has finished and input is on again
   const before = await count();
   for (let i = 0; i < n; i++) { await p.locator('#top .hit').click({ force: true }); await p.waitForTimeout(gap); }
   await p.waitForFunction(b => { const s = document.getElementById('scene'); return s && s.dataset.entered.split(',').filter(Boolean).length > b; }, before, { timeout: 25000 });

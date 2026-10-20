@@ -48,6 +48,10 @@ Same kind of panel, shown only on step 3: snap distance (20–90 px, default 48)
 
 Panel shown only on step 4: turn duration (200–900 ms, default 600), pause to confirm (700–1800 ms, 1000), number pop height (10–60 px, 30) and number feedback time (400–1200 ms, 800). Restore defaults and Copy settings (every value with its unit) work as in the other panels. Code: `docs/js/top-motion.js` (defaults and limits), `docs/js/top-panel.js`, `docs/js/scenes/scene4.js`.
 
+## High-fidelity skin
+
+`docs/css/hifi.css` (loaded last) restyles the whole prototype without touching layout or behaviour: graphite paper with grain and light, brushed-metal tiles, buttons and frames, engraved slots, a brass accent for keys, locks, lit marks and stamps (rubber-stamp ink texture), warm-white type in Jost (300/400/500, bundled). Shared gradients and the ink filter are defined once at the top of `docs/index.html` (`hf-*`). To retune the accent change `--accent`, `--accent-light` and `--accent-deep` at the top of `hifi.css`. To see the prototype without the tuning panels (presentation or screenshots) add `?clean` to the address, for example `index.html?clean`.
+
 ## Repository layout
 
 ```
@@ -65,6 +69,7 @@ docs/                    <- the published site (GitHub Pages source)
   js/top-motion.js       <- Step 4 spin settings (defaults, limits)
   js/top-panel.js        <- "Top Spin Controls" panel (Step 4 only)
   css/panel.css          <- panel styles
+  css/hifi.css           <- high-fidelity skin (materials, light, accent)
   js/scenes/scene1-4.js  <- the four studies ported as scenes (markup + original behaviour)
   fonts/jost-300.ttf     <- Jost Light, bundled (used for "MOON")
 studies/                 <- original, unmodified study sources (index.html + STUDY.md each)

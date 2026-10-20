@@ -21,21 +21,21 @@
     <!-- clock showing 3:17: the clue -->
     <g transform="translate(132 4) scale(.8)" role="img" aria-label="Clock showing 3:17">
       <circle cx="63" cy="64" r="52" fill="#000" stroke="none" opacity=".6" filter="url(#top-soft)"/>
-      <circle cx="60" cy="60" r="52" fill="#1d1d1d"/>
-      <path d="M12 60 A48 48 0 0 1 60 12" stroke="#565656"/>
-      <path d="M108 60 A48 48 0 0 1 60 108" stroke="#060606"/>
-      <circle cx="60" cy="60" r="43" fill="#161616" stroke="#5e5e5e"/>
-      <line x1="60" y1="19" x2="60" y2="26"/>
-      <line x1="60" y1="19" x2="60" y2="26" transform="rotate(90 60 60)"/>
-      <line x1="60" y1="19" x2="60" y2="26" transform="rotate(180 60 60)"/>
-      <line x1="60" y1="19" x2="60" y2="26" transform="rotate(270 60 60)"/>
-      <rect x="27" y="43" width="66" height="34" rx="3" fill="#0d0d0d" stroke="#5e5e5e"/>
+      <circle class="c-case" cx="60" cy="60" r="52" fill="#1d1d1d"/>
+      <path class="c-hi" d="M12 60 A48 48 0 0 1 60 12" stroke="#565656"/>
+      <path class="c-lo" d="M108 60 A48 48 0 0 1 60 108" stroke="#060606"/>
+      <circle class="c-dial" cx="60" cy="60" r="43" fill="#161616" stroke="#5e5e5e"/>
+      <line class="c-tick" x1="60" y1="19" x2="60" y2="26"/>
+      <line class="c-tick" x1="60" y1="19" x2="60" y2="26" transform="rotate(90 60 60)"/>
+      <line class="c-tick" x1="60" y1="19" x2="60" y2="26" transform="rotate(180 60 60)"/>
+      <line class="c-tick" x1="60" y1="19" x2="60" y2="26" transform="rotate(270 60 60)"/>
+      <rect class="c-niche" x="27" y="43" width="66" height="34" rx="3" fill="#0d0d0d" stroke="#5e5e5e"/>
       <g transform="translate(60 60) scale(.75) translate(-120 -83)" stroke="#dcdcdc">
-        <path d="M85 66 H103 V100 H85 M92 83 H103"/>
-        <circle cx="114" cy="76" r="1.8" fill="#dcdcdc" stroke="none"/>
-        <circle cx="114" cy="90" r="1.8" fill="#dcdcdc" stroke="none"/>
-        <path d="M126 66 V100 M126 66 L120 72"/>
-        <path d="M137 66 H155 V100"/>
+        <path class="c-digit" d="M85 66 H103 V100 H85 M92 83 H103"/>
+        <circle class="c-colon" cx="114" cy="76" r="1.8" fill="#dcdcdc" stroke="none"/>
+        <circle class="c-colon" cx="114" cy="90" r="1.8" fill="#dcdcdc" stroke="none"/>
+        <path class="c-digit" d="M126 66 V100 M126 66 L120 72"/>
+        <path class="c-digit" d="M137 66 H155 V100"/>
       </g>
     </g>
 
@@ -232,7 +232,7 @@
         entered.push(f.n);
         if (f.n !== CODE[f.idx]) {                               // wrong digit at this position
           msgEl.textContent = 'Wrong sequence. Try again.';
-          msgEl.classList.add('show');
+          msgEl.classList.add('show', 'bad');
           live.textContent = 'Wrong sequence. Try again.';
           shake = { t0: now() };
           after(ERR_MS, resetCode);
@@ -248,7 +248,7 @@
 
       function resetCode() {                                     // clears only this step
         shake = null;
-        msgEl.classList.remove('show');
+        msgEl.classList.remove('show', 'bad');
         entered = [];
         slotText.forEach(function (t) { t.textContent = ''; });
         slotRect.forEach(function (s) { s.setAttribute('data-digit', ''); });

@@ -18,6 +18,8 @@
 
   window.TuningPanel = {
     mount: function (cfg) {
+      // ?clean in the address bar hides every tuning panel (presentation / screenshot mode)
+      if (/[?&]clean(&|=|$)/.test(location.search)) return { refresh: function () {}, say: function () {}, destroy: function () {} };
       var M = cfg.model;
       var root = document.createElement('aside');
       root.className = 'city-panel';
