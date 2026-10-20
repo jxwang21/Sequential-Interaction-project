@@ -1,24 +1,21 @@
-/* Top spin settings for step 4 (tap the top; each tap queues one full 360-degree turn).
-   Single source of truth read every frame by scenes/scene4.js and edited by the "Top Spin Controls" panel
-   (js/top-panel.js). DEFAULTS are the saved defaults; change them here to make new values the prototype's defaults. */
+/* Top spin settings for step 4 (spin the top to enter the three-digit code).
+   Single source of truth read live by scenes/scene4.js and edited by the "Top Spin Controls" panel (js/top-panel.js).
+   DEFAULTS are the saved defaults; change them here to make new values the prototype's defaults. */
 (function () {
   var DEFAULTS = {
-    turnMs: 900,     // time one isolated full turn takes, start to stop
-    easePct: 50,     // how much of that turn is spent speeding up and slowing down (0 = almost none, 100 = pure ease in/out)
-    risePx: 30,      // how far the popped number rises (scene px, ~screen px at 100% size)
-    popMs: 700,      // how long the popped number takes to rise and fade out
-    sizePx: 36       // popped number font size (scene px)
+    turnMs: 600,       // time one isolated full turn takes, start to stop
+    confirmMs: 1000,   // pause (no tap, nothing left to spin) after which the round is confirmed
+    popPx: 30,         // how high the revealed number rises above the top before it flies to its slot (scene px)
+    feedbackMs: 800    // how long the number feedback lasts: pop up, then travel into the slot
   };
   var LIMITS = {
-    turnMs:  { min: 300, max: 1500, step: 50, unit: 'ms' },
-    easePct: { min: 0,   max: 100,  step: 5,  unit: '%' },
-    risePx:  { min: 10,  max: 60,   step: 1,  unit: 'px' },
-    popMs:   { min: 300, max: 1200, step: 50, unit: 'ms' },
-    sizePx:  { min: 20,  max: 64,   step: 1,  unit: 'px' }
+    turnMs:     { min: 200, max: 900,  step: 50, unit: 'ms' },
+    confirmMs:  { min: 700, max: 1800, step: 50, unit: 'ms' },
+    popPx:      { min: 10,  max: 60,   step: 1,  unit: 'px' },
+    feedbackMs: { min: 400, max: 1200, step: 50, unit: 'ms' }
   };
   var LABELS = {
-    turnMs: 'Turn duration', easePct: 'Start/stop easing strength', risePx: 'Number rise distance',
-    popMs: 'Number display time', sizePx: 'Number size'
+    turnMs: 'Turn duration', confirmMs: 'Pause to confirm', popPx: 'Number pop height', feedbackMs: 'Number feedback time'
   };
   var state = {}, listeners = [];
   Object.keys(DEFAULTS).forEach(function (k) { state[k] = DEFAULTS[k]; });
@@ -39,12 +36,11 @@
   function settingsText() {
     var s = get();
     return [
-      'Component: Top Spin Controls (Step 4 – spin the top)',
+      'Component: Top Spin Controls (Step 4 – spin the top to enter the code)',
       'Turn duration: ' + s.turnMs + ' ms',
-      'Start/stop easing strength: ' + s.easePct + ' %',
-      'Number rise distance: ' + s.risePx + ' px',
-      'Number display time: ' + s.popMs + ' ms',
-      'Number size: ' + s.sizePx + ' px',
+      'Pause to confirm: ' + s.confirmMs + ' ms',
+      'Number pop height: ' + s.popPx + ' px',
+      'Number feedback time: ' + s.feedbackMs + ' ms',
       '',
       INSTRUCTION
     ].join('\n');

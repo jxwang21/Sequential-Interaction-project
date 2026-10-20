@@ -342,9 +342,9 @@
 .s3 .msg{transition-duration: .01s !important;}
 }
 
-.s4{--s:min(calc(100cqw / 360), calc(100cqh / 500), 1.2px);}
+.s4{--s:min(calc(100cqw / 360), calc(100cqh / 590), 1.2px);}
 
-/* ===== Step 4: redesigned as "tap the top to spin"; the top drawing comes from studies/04-activate-the-spinning-top ===== */
+/* ===== Step 4: spin the top to enter the code; the top drawing and the clock come from studies/04-activate-the-spinning-top ===== */
 .s4 .stage{box-sizing: border-box;
   height: 100%;
   display: flex;
@@ -357,7 +357,7 @@
 .s4 svg *{vector-effect: non-scaling-stroke;}
 .s4 .scene{flex: none;
   width: calc(var(--s) * 360);
-  height: calc(var(--s) * 500);
+  height: calc(var(--s) * 590);
   overflow: visible;
   touch-action: none;}
 
@@ -373,13 +373,27 @@
 .s4 .tick{stroke: var(--bright); stroke-width: 2;}
 .s4 .hit{fill: transparent; stroke: none; pointer-events: all;}
 @media (hover: hover){
-.s4 .top:hover{--eo: var(--line-hi);}
+.s4 .scene:not(.locked) .top:hover{--eo: var(--line-hi);}
 }
 .s4 .top:focus-visible{--eo: var(--bright);}
 .s4 .top:focus-visible .disc{stroke-width: 2.5;}
+/* while a number is being revealed or an error is shown the top is dimmed and does not respond */
+.s4 .scene.locked .top{--eo: var(--line-dim); cursor: default;}
+/* a short brightening tells the player the next round can start */
+.s4 .scene.ready .top{--eo: var(--bright);}
 
-.s4 .counter{fill: var(--lit); stroke: none; font-family: 'Jost', 'Helvetica Neue', Arial, sans-serif; font-weight: 300; font-size: 24px; letter-spacing: 2px; font-variant-numeric: tabular-nums;}
-.s4 .pop{fill: var(--bright); stroke: none; font-family: 'Jost', 'Helvetica Neue', Arial, sans-serif; font-weight: 300; pointer-events: none; font-variant-numeric: tabular-nums;}
+.s4 .wait-ring{fill: none; stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 100; stroke-dashoffset: 0; opacity: 0; vector-effect: none; transition: opacity .2s ease;}
+.s4 .wait-ring{vector-effect: none;}
+
+.s4 .slot rect{fill: var(--niche); stroke: var(--line-dim); transition: stroke .15s ease, fill .15s ease;}
+.s4 .slot.next rect{stroke: var(--line-hi);}
+.s4 .slot-digit{fill: var(--bright); stroke: none; font-family: 'Jost', 'Helvetica Neue', Arial, sans-serif; font-weight: 300; font-size: 34px; font-variant-numeric: tabular-nums;}
+.s4 .fly{fill: var(--bright); stroke: none; font-family: 'Jost', 'Helvetica Neue', Arial, sans-serif; font-weight: 300; pointer-events: none; font-variant-numeric: tabular-nums;}
+.s4 .msg{fill: var(--bright); stroke: none; font-family: 'Jost', 'Helvetica Neue', Arial, sans-serif; font-weight: 300; font-size: 18px; letter-spacing: 1.2px; opacity: 0; transition: opacity .15s ease;}
+.s4 .msg.show{opacity: 1;}
 @media (prefers-reduced-motion: reduce){
-.s4 .top .tp{transition-duration: .01s !important;}
+.s4 .top .tp,
+.s4 .slot rect,
+.s4 .msg,
+.s4 .wait-ring{transition-duration: .01s !important;}
 }

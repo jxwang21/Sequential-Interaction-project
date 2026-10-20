@@ -1,5 +1,4 @@
-/* Checks for step 4 (tap the top; each tap queues one full turn; completed turns reveal numbers) and its
-   "Top Spin Controls" panel. The completion rule is intentionally not connected yet, so nothing here expects step 4 to finish.
+/* Checks for step 4 (spin the top to enter the code 3 -> 1 -> 7 read from the 3:17 clock) and its "Top Spin Controls" panel.
    Usage: python3 -m http.server 8123 --directory docs &  then  SHOTS=/tmp node tests/top.js [url]
    Needs `playwright` and a Chromium (CHROME=/path/to/chrome if not auto-detected). */
 const { chromium } = require('playwright');
@@ -23,245 +22,284 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   await p.waitForTimeout(500);
 
   const st = () => p.evaluate(() => ({ step: document.getElementById('paper').dataset.step, phase: document.getElementById('paper').dataset.phase, stamps: [...document.querySelectorAll('#stamps .stamp')].map(s => s.classList.contains('on') ? 1 : 0).join('') }));
-  const rd = () => p.evaluate(() => { const t = document.getElementById('top'); return { turns: +t.dataset.turns, q: +t.dataset.queued, th: +t.dataset.theta, c: document.getElementById('counter').textContent }; });
+  const rd = () => p.evaluate(() => { const t = document.getElementById('top'); return { ph: t.dataset.phase, round: +t.dataset.round, q: +t.dataset.queued, th: +t.dataset.theta, ent: document.getElementById('scene').dataset.entered, digits: [...document.querySelectorAll('.s4 .slot')].map(s => s.dataset.digit).join('|') }; });
   const setRange = (id, v) => p.locator('#' + id).evaluate((e, v) => { e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); }, v);
   const topBox = () => p.evaluate(() => { const r = document.querySelector('#top .hit').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height * 0.55, w: r.width, h: r.height, top: r.top }; });
-  const tapMouse = async () => { const t = await topBox(); await p.mouse.move(t.x, t.y); await p.mouse.down(); await p.mouse.up(); };
+  const taps = async (n, gap = 70) => { const t = await topBox(); await p.mouse.move(t.x, t.y); for (let i = 0; i < n; i++) { await p.mouse.down(); await p.mouse.up(); if (gap) await p.waitForTimeout(gap); } };
   const rafCount = () => p.evaluate(() => window.__raf);
+  const waitEntered = (len, t = 25000) => p.waitForFunction(l => { const s = document.getElementById('scene'); return s && s.dataset.entered.split(',').filter(Boolean).length >= l; }, len, { timeout: t });
+  const waitIdle = (t = 15000) => p.waitForFunction(() => { const e = document.getElementById('top'); return e && e.dataset.phase === 'idle'; }, null, { timeout: t });
+  const slotsCleared = () => p.waitForFunction(() => { const s = document.getElementById('scene'); return s && s.dataset.entered === '' && document.getElementById('top').dataset.phase === 'idle'; }, null, { timeout: 8000 });
 
-  // samples (theta, speed inputs, counter, pops) every frame from "now"
   const startRec = () => p.evaluate(() => {
-    if (window.__r && window.__r.obs) window.__r.obs.forEach(o => o.disconnect());
-    window.__r = { s: [], t0: performance.now(), counters: [], pops: [], obs: [] };
-    const top = document.getElementById('top'), c = document.getElementById('counter');
-    const o1 = new MutationObserver(m => m.forEach(x => x.addedNodes.forEach(n => { if (n.nodeType === 1) window.__r.pops.push({ t: performance.now(), n: n.textContent }); })));
-    o1.observe(document.getElementById('pops'), { childList: true });
-    const o2 = new MutationObserver(() => window.__r.counters.push({ t: performance.now(), c: c.textContent }));
-    o2.observe(c, { childList: true, characterData: true, subtree: true });
-    window.__r.obs.push(o1, o2);
+    if (window.__R && window.__R.raf) cancelAnimationFrame(window.__R.raf);
+    const R = window.__R = { s: [], raf: 0 };
+    const top = document.getElementById('top'), scene = document.getElementById('scene'), msg = document.getElementById('msg'), slots = document.getElementById('slots');
     (function tick() {
-      window.__r.s.push({ t: performance.now(), th: +top.dataset.theta, turns: +top.dataset.turns, c: c.textContent });
-      window.__r.raf = requestAnimationFrame(tick);
+      const f = document.querySelector('#fly text');
+      R.s.push({ t: performance.now(), th: +top.dataset.theta, ph: top.dataset.phase, round: +top.dataset.round, q: +top.dataset.queued, ent: scene.dataset.entered, fx: f ? +f.getAttribute('x') : null, fy: f ? +f.getAttribute('y') : null, ft: f ? f.textContent : null, msg: msg.classList.contains('show') ? msg.textContent : '', locked: scene.classList.contains('locked'), ready: scene.classList.contains('ready'), sx: slots.getAttribute('transform'), next: [...document.querySelectorAll('.s4 .slot.next')].map(e => e.id).join() });
+      R.raf = requestAnimationFrame(tick);
     })();
   });
-  const stopRec = () => p.evaluate(() => { cancelAnimationFrame(window.__r.raf); window.__r.obs.forEach(o => o.disconnect()); const r = window.__r; return { s: r.s, t0: r.t0, counters: r.counters, pops: r.pops }; });
-  // helpers over a recording
-  const analyse = r => {
-    const s = r.s, out = { mono: true, maxStepDeg: 0, maxAccel: 0, consistent: true, start: null, end: null };
-    let prevSpeed = 0;
-    for (let i = 1; i < s.length; i++) {
-      const dth = s[i].th - s[i - 1].th, dt = (s[i].t - s[i - 1].t) / 1000;
-      if (dth < -1e-6) out.mono = false;
-      out.maxStepDeg = Math.max(out.maxStepDeg, dth);
-      const sp = dth / dt;
-      out.maxAccel = Math.max(out.maxAccel, Math.abs(sp - prevSpeed));
-      prevSpeed = sp;
-      if (s[i].c !== 'Turns: ' + s[i].turns || s[i].turns !== Math.floor(s[i].th / 360 + 1e-6)) out.consistent = false;
-      if (out.start === null && s[i].th > 0.01) out.start = s[i].t;
-    }
-    for (let i = s.length - 1; i > 0; i--) if (s[i].th - s[i - 1].th > 0.001) { out.end = s[i].t; break; }
-    out.final = s[s.length - 1].th;
-    return out;
+  const stopRec = () => p.evaluate(() => { cancelAnimationFrame(window.__R.raf); return window.__R.s; });
+  const first = (s, f, from = 0) => { for (let i = from; i < s.length; i++) if (f(s[i], i)) return i; return -1; };
+  const analyse = s => {
+    let mono = true, maxStep = 0;
+    for (let i = 1; i < s.length; i++) { const d = s[i].th - s[i - 1].th; if (d < -1e-6) mono = false; maxStep = Math.max(maxStep, d); }
+    return { mono, maxStep };
   };
+  const nEnt = x => x.split(',').filter(Boolean).length;
+  let A;
 
-  // ================= enter step 4 =================
+  // ================= entering step 4: layout and content =================
   await H.toStep4(p);
   let state = await st();
   check('Step 4 reached with stamps 1-3 kept', state.step === '4' && state.stamps === '1110');
-  check('Hint is "Tap the top to spin. Each full turn reveals a number."', (await p.locator('#hint').textContent()) === 'Tap the top to spin. Each full turn reveals a number.');
-  check('Old clock clue, number marks and 3-1-7 elements are gone', await p.locator('.s4 .mark, .s4 #marks, .s4 #top-mark, .s4 #shine, .s4 #dusk').count() === 0);
+  check('Hint is "Tap to spin. Pause to reveal each number."', (await p.locator('#hint').textContent()) === 'Tap to spin. Pause to reveal each number.');
+  check('Clock reading 3:17 is shown as the clue', await p.locator('.s4 [aria-label="Clock showing 3:17"]').count() === 1);
   let r0 = await rd();
-  check('Initial state: top at rest (0°), counter shows Turns: 0, nothing queued', r0.th === 0 && r0.turns === 0 && r0.q === 0 && r0.c === 'Turns: 0', JSON.stringify(r0));
+  check('Three empty code slots; top at rest; nothing entered', await p.locator('.s4 .slot').count() === 3 && r0.digits === '||' && r0.ent === '' && r0.th === 0 && r0.ph === 'idle' && r0.q === 0, JSON.stringify(r0));
+  check('Old number buttons, math symbols and answer input are absent', await p.locator('.s4 .mark, .s4 #marks, .s4 input, .s4 button').count() === 0 && !/[+×÷=]/.test(await p.locator('#stage').textContent()));
+  check('The code is not written anywhere and no digit is pre-filled', !/3\s*(→|->|,)\s*1/.test(await p.locator('#stage').textContent()) && r0.digits === '||');
   const box = await topBox();
-  check('Top is large enough to hit (desktop ≥ 120 × 200 px)', box.w >= 120 && box.h >= 200, box.w.toFixed(0) + '×' + box.h.toFixed(0));
-  check('Panel "Top Spin Controls" present; no clock/marks panel; no easing dropdown', await p.locator('aside[aria-label="Top Spin Controls"]').count() === 1 && await p.locator('.city-panel select').count() === 0);
-  const defs = await p.evaluate(() => ['tp-turn', 'tp-ease', 'tp-rise', 'tp-pop', 'tp-size'].map(id => { const e = document.getElementById(id); return [e.min, e.max, e.value].join('/'); }).join(' '));
-  check('Controls: turn 300–1500 (900), easing strength 0–100 % (50), rise 10–60 (30), display 300–1200 (700), size 20–64 (36)', defs === '300/1500/900 0/100/50 10/60/30 300/1200/700 20/64/36', defs);
-  check('Idle: no animation loop running at rest', await (async () => { const a = await rafCount(); await p.waitForTimeout(600); return (await rafCount()) === a; })());
-  check('Rest pose is the same after any whole number of turns (stripe geometry identical at 0°)', true);
-  await p.screenshot({ path: SH + 'top-rest.png' });
+  check('Top is large enough to hit (desktop ≥ 100 × 150 px)', box.w >= 100 && box.h >= 150, box.w.toFixed(0) + '×' + box.h.toFixed(0));
+  check('Panel "Top Spin Controls" present with exactly four sliders and no dropdown', await p.locator('aside[aria-label="Top Spin Controls"]').count() === 1 && await p.locator('.city-panel input[type=range]').count() === 4 && await p.locator('.city-panel select').count() === 0);
+  const defs = await p.evaluate(() => ['tp-turn', 'tp-confirm', 'tp-pop', 'tp-feedback'].map(id => { const e = document.getElementById(id); return [e.min, e.max, e.value].join('/'); }).join(' '));
+  check('Controls: turn 200–900 (600), pause to confirm 700–1800 (1000), pop height 10–60 (30), feedback 400–1200 (800)', defs === '200/900/600 700/1800/1000 10/60/30 400/1200/800', defs);
+  check('Idle at rest: no animation loop running', await (async () => { const a = await rafCount(); await p.waitForTimeout(600); return (await rafCount()) === a; })());
+  await p.screenshot({ path: SH + 'code-rest.png' });
 
-  // ================= hover / focus / press feedback =================
+  // ================= hover / focus / press =================
   const stroke = () => p.evaluate(() => getComputedStyle(document.querySelector('#top .disc')).stroke);
   const base = await stroke();
   await p.mouse.move(box.x, box.y); await p.waitForTimeout(250);
   const hov = await stroke();
   check('Hover gives a light brightness change', hov !== base, base + ' → ' + hov);
   await p.mouse.move(5, 5); await p.waitForTimeout(250);
-  await p.keyboard.press('Shift');
-  await p.evaluate(() => document.getElementById('top').focus()); await p.waitForTimeout(250);
+  await p.keyboard.press('Shift'); await p.evaluate(() => document.getElementById('top').focus()); await p.waitForTimeout(250);
   const foc = await stroke();
-  check('Keyboard focus brightens the outline (and is visible)', foc !== base, base + ' → ' + foc);
+  check('Keyboard focus brightens the outline', foc !== base, base + ' → ' + foc);
   await p.evaluate(() => document.getElementById('top').blur());
-  const tipOf = () => p.evaluate(() => { const g = document.getElementById('top-press'), svg = document.getElementById('scene'); const m = g.getScreenCTM(); const pt = (x, y) => [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f]; return { tip: pt(60, 148), disc: pt(60, 52), scale: m.a }; });
+  const tipOf = () => p.evaluate(() => { const g = document.getElementById('top-press'), m = g.getScreenCTM(); const pt = (x, y) => [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f]; return { tip: pt(60, 148), scale: m.a }; });
   const before = await tipOf();
   await p.mouse.move(box.x, box.y); await p.mouse.down(); await p.waitForTimeout(250);
   const during = await tipOf();
-  check('Press feedback: body sinks slightly (scale < 1) but the contact point (tip) does not move', during.scale < before.scale - 0.01 && near(during.tip[0], before.tip[0], 0.6) && near(during.tip[1], before.tip[1], 0.6), JSON.stringify({ s0: before.scale.toFixed(3), s1: during.scale.toFixed(3), dTip: [during.tip[0] - before.tip[0], during.tip[1] - before.tip[1]].map(x => x.toFixed(2)) }));
-  await p.screenshot({ path: SH + 'top-press.png' });
-  await p.mouse.move(5, 5); await p.waitForTimeout(150);                  // drag off: release outside cancels the tap
-  await p.mouse.up(); await p.waitForTimeout(400);
-  check('Releasing outside the top cancels the press (no turn queued) and the body recovers', (await rd()).q === 0 && (await tipOf()).scale > before.scale - 0.003);
+  check('Press feedback: body sinks slightly, the contact point (tip) stays put', during.scale < before.scale - 0.01 && near(during.tip[0], before.tip[0], 0.6) && near(during.tip[1], before.tip[1], 0.6), JSON.stringify({ s0: before.scale.toFixed(3), s1: during.scale.toFixed(3) }));
+  await p.mouse.move(5, 5); await p.waitForTimeout(150); await p.mouse.up(); await p.waitForTimeout(400);
+  check('Releasing outside the top cancels the tap (nothing queued)', (await rd()).q === 0 && (await rd()).ph === 'idle');
 
-  // ================= single tap =================
+  // ================= round 1: keyboard Enter, Space, held Enter = 3 turns -> digit 3 =================
+  await p.evaluate(() => document.getElementById('top').focus());
   await startRec();
-  await tapMouse();
-  await p.waitForTimeout(1700);
-  let rec = await stopRec(), A = analyse(rec);
-  const dur = A.end - rec.s.find(x => x.th > 0.01).t;
-  check('Single tap: exactly one full turn, stops at 360.000° and reads Turns: 1', A.final === 360 && (await rd()).c === 'Turns: 1', 'final ' + A.final);
-  check('Single tap: takes ≈ 900 ms start to stop', dur > 780 && dur < 1050, dur.toFixed(0) + ' ms');
-  check('Angle is monotonic (no reversal) and smooth (no frame jumps)', A.mono && A.maxStepDeg < 25, 'max step ' + A.maxStepDeg.toFixed(1) + '°');
-  check('Counter always equals the number of completed turns (never ahead of the rotation)', A.consistent);
-  const first = rec.counters[0];
-  check('"Turns: 1" appears only when the rotation has actually reached 360° (not at the tap)', first && first.c === 'Turns: 1' && rec.s.find(x => x.t >= first.t - 20).th > 350, first ? JSON.stringify(first.c) : 'none');
-  check('One pop "1" appeared', rec.pops.length === 1 && rec.pops[0].n === '1');
-  check('Loop stops itself after the top rests', await (async () => { await p.waitForTimeout(1300); const a = await rafCount(); await p.waitForTimeout(500); return (await rafCount()) === a; })());
+  await p.keyboard.press('Enter'); await p.waitForTimeout(80);
+  await p.keyboard.press('Space'); await p.waitForTimeout(80);
+  await p.keyboard.down('Enter'); await p.keyboard.down('Enter'); await p.keyboard.down('Enter'); await p.keyboard.up('Enter');
+  await waitEntered(1); await p.waitForTimeout(200);
+  let s = await stopRec();
+  let ent = await rd();
+  check('Keyboard: Enter, Space and a held Enter count once each → 3 turns → slot 1 shows 3', ent.digits === '3||' && ent.ent === '3', JSON.stringify(ent));
+  const iw = first(s, x => x.ph === 'waiting'), ic = first(s, x => x.ph === 'feedback', iw);
+  check('Pausing: the round is confirmed ≈ 1000 ms after the queue emptied', iw > 0 && ic > iw && near(s[ic].t - s[iw].t, 1000, 150), iw > 0 ? (s[ic].t - s[iw].t).toFixed(0) + ' ms' : 'no waiting phase');
+  const lastTapTurns = s[iw].round;
+  check('Number comes from the turns actually completed: 3 turns done when the pause started, popped number is 3', lastTapTurns === 3 && s.some(x => x.ft === '3'), 'round ' + lastTapTurns);
+  const analysis = analyse(s);
+  check('Angle monotonic (no reversal/reset) and smooth during the three queued turns', analysis.mono && analysis.maxStep < 40, analysis.maxStep.toFixed(1) + '°/frame');
+  const moving = s.filter((x, i) => i && x.th > 200 && x.th < 900).map((x, i, a) => i ? (x.th - a[i - 1].th) / ((x.t - a[i - 1].t) / 1000) : null).filter(v => v !== null);
+  check('No pause between queued turns (speed never drops near 0 between 200° and 900°)', Math.min(...moving) > 200, Math.min(...moving).toFixed(0) + '°/s');
+  const flyS = s.filter(x => x.fx !== null);
+  check('Number pops above the top, then travels into slot 1', flyS.length > 5 && near(flyS[0].fx, 180, 2) && flyS[flyS.length - 1].fx < 140 && Math.min(...flyS.map(x => x.fy)) < flyS[0].fy - 20, flyS.length ? JSON.stringify({ x0: flyS[0].fx, xN: flyS[flyS.length - 1].fx, y0: flyS[0].fy, yMin: Math.min(...flyS.map(x => x.fy)) }) : 'none');
+  const lockedDuring = s.filter(x => x.ph === 'feedback').every(x => x.locked);
+  check('Input is locked (top dimmed) during the number feedback', lockedDuring && s.some(x => x.ph === 'feedback'));
+  const il = first(s, x => nEnt(x.ent) === 1);
+  const unl = first(s, x => !x.locked, il);
+  check('When the feedback ends the next slot is highlighted and the top is ready again', unl > 0 && s.slice(unl).some(x => x.next === 'slot-1'), unl > 0 ? 'unlocked ' + (s[unl].t - s[il].t).toFixed(0) + ' ms after landing' : 'never');
+  await p.screenshot({ path: SH + 'code-slot1.png' });
 
-  // ================= queued taps during the spin =================
+  // ================= round 2: tap, then extra taps inside the confirm countdown stay in the same round =================
   await startRec();
-  await tapMouse(); await p.waitForTimeout(300);
-  await tapMouse(); await tapMouse();
-  const qNow = await rd();
-  check('Taps during a spin join the queue; counter does not jump ahead (3 queued, Turns still 0/1)', qNow.q >= 2 && qNow.q <= 3 && qNow.turns < 2, JSON.stringify(qNow));
-  await p.waitForTimeout(3600);
-  rec = await stopRec(); A = analyse(rec);
-  const total = await rd();
-  check('Three taps → three full turns: ends at 1440° (360 earlier + 3×360) and Turns: 4', near(total.th, 1440, 0.001) && total.c === 'Turns: 4', JSON.stringify(total));
-  check('Queued turns run continuously: monotonic, no reset, no frame jumps', A.mono && A.maxStepDeg < 25, 'max step ' + A.maxStepDeg.toFixed(1));
-  // no pause between turns: speed stays high in the middle
-  const mid = rec.s.filter((x, i) => i && x.th > 400 && x.th < 1300).map((x, i, a) => i ? (x.th - a[i - 1].th) / ((x.t - a[i - 1].t) / 1000) : null).filter(x => x !== null);
-  const midMin = Math.min(...mid);
-  check('No pause between queued turns (speed never drops near zero between 400° and 1300°)', midMin > 300, 'min speed ' + midMin.toFixed(0) + '°/s');
-  check('Pops 2, 3, 4 came in order, one per completed turn', rec.pops.map(x => x.n).join() === '2,3,4', rec.pops.map(x => x.n).join());
-  check('Counter text sequence is 2,3,4 without gaps', rec.counters.map(x => x.c).join() === 'Turns: 2,Turns: 3,Turns: 4', rec.counters.map(x => x.c).join());
-  check('Stops exactly on a whole number of turns', total.th % 360 === 0);
+  await taps(1, 0);
+  await p.waitForFunction(() => document.getElementById('top').dataset.phase === 'waiting', null, { timeout: 5000 });
+  await p.waitForTimeout(600);                                 // inside the 1000 ms pause
+  const midWait = await rd();
+  await taps(1, 0);                                            // extends the current round
+  await waitEntered(2);
+  s = await stopRec();
+  const iw2 = first(s, x => x.ph === 'waiting'), ic2 = first(s, x => x.ph === 'feedback');
+  const second = first(s, x => x.ph === 'spinning', iw2);
+  check('A tap during the pause continues the same round (spins again, waits again)', midWait.ph === 'waiting' && second > iw2, JSON.stringify(midWait));
+  check('...the pause restarts: confirmed ≈ 1000 ms after the second spin ended', ic2 > 0 && near(s[ic2].t - s[first(s, x => x.ph === 'waiting', second)].t, 1000, 150));
+  check('...and the revealed number is 2 (both taps counted, one round)', s.some(x => x.ft === '2') && !s.some(x => x.ft === '1'));
+  check('Wrong digit (2 is not 1): number shown first, then "Wrong sequence. Try again."', first(s, x => x.ft === '2') >= 0 && first(s, x => x.msg === 'Wrong sequence. Try again.') > first(s, x => x.ft === '2'), '');
+  const sh = s.filter(x => x.msg).map(x => /translate\(([\d.]+)/.exec(x.sx)).filter(Boolean).map(m => +m[1]);
+  check('Wrong digit: slots shake (not colour alone)', Math.max(...sh) - Math.min(...sh) > 2, (Math.max(...sh) - Math.min(...sh)).toFixed(1));
+  await p.screenshot({ path: SH + 'code-wrong.png' });
+  const dTap = await rd();
+  await taps(1, 0); await p.waitForTimeout(100);
+  check('Taps during the error feedback are ignored', (await rd()).q === dTap.q && (await rd()).round === dTap.round);
+  await slotsCleared();
+  ent = await rd(); state = await st();
+  check('After the error all three slots, the round and the queue are cleared; steps 1-3 and stamps untouched; still step 4', ent.digits === '||' && ent.ent === '' && ent.q === 0 && ent.round === 0 && state.step === '4' && state.stamps === '1110', JSON.stringify(ent));
 
-  // ================= rapid input =================
-  await setRange('tp-turn', 300);
+  // ================= maximum 9 turns per round =================
   await startRec();
-  const t = await topBox();
-  await p.mouse.move(t.x, t.y);
-  for (let i = 0; i < 20; i++) { await p.mouse.down(); await p.mouse.up(); await p.waitForTimeout(12); }
-  const early = await rd();
-  check('20 rapid taps: all queued, counter not advanced by the taps', early.q + early.turns >= 18 && early.turns <= 6, JSON.stringify(early));
-  await p.waitForTimeout(6000);
-  rec = await stopRec(); A = analyse(rec);
-  const fin = await rd();
-  check('20 rapid taps: exactly 20 more turns (Turns: 24, 8640°), nothing queued', fin.turns === 24 && near(fin.th, 8640, 0.001) && fin.q === 0, JSON.stringify(fin));
-  const seq = rec.counters.map(x => +x.c.replace('Turns: ', ''));
-  check('Rapid input: numbers appear in order 5…24, none skipped or repeated', seq.length === 20 && seq.every((n, i) => n === i + 5), seq.join(','));
-  check('Rapid input: pops match the same order', rec.pops.map(x => +x.n).join() === seq.join());
-  check('Rapid input: angle stays monotonic and smooth', A.mono && A.maxStepDeg < 45 && A.consistent, 'max step ' + A.maxStepDeg.toFixed(1));
-  await setRange('tp-turn', 900);
+  await taps(12, 12);
+  const limitMsg = await p.locator('#msg').textContent();
+  const limitShown = await p.locator('#msg.show').count();
+  await waitEntered(1);
+  s = await stopRec();
+  const nine = s.find(x => x.ft);
+  check('Round is capped at 9 turns: 12 quick taps → digit 9, no extra rotation queued', s.some(x => x.ft === '9') && Math.max(...s.map(x => x.th)) - s[0].th <= 9 * 360 + 0.01, 'turns ' + ((Math.max(...s.map(x => x.th)) - s[0].th) / 360).toFixed(2));
+  check('Reaching the limit gives a gentle cue ("Maximum is 9 turns.")', limitMsg === 'Maximum is 9 turns.' && limitShown === 1, limitMsg);
+  await slotsCleared();
 
   // ================= single animation loop =================
-  await tapMouse(); await tapMouse(); await tapMouse();       // 3 slow turns queued
-  await p.waitForTimeout(300);
+  await taps(4, 20);                                            // a long spin; the digit 4 will be wrong at slot 1, which is fine here
+  await p.waitForTimeout(400);
   const r1 = await rafCount(); await p.waitForTimeout(1000); const r2 = await rafCount();
   check('Only one animation loop while spinning (≈ one callback per frame)', r2 - r1 > 30 && r2 - r1 < 80, String(r2 - r1));
-  await p.waitForTimeout(4200);
+  await waitEntered(1); await slotsCleared();
   const r3 = await rafCount(); await p.waitForTimeout(800);
-  check('No loop left running after the queue is empty', (await rafCount()) === r3);
-  await p.screenshot({ path: SH + 'top-after.png' });
+  check('No loop left running once the round is finished and the top is idle', (await rafCount()) === r3);
 
-  // ================= pops: motion, not blocking =================
-  await p.evaluate(() => window.focus());
-  await tapMouse();
-  await p.waitForFunction(() => document.querySelector('#pops .pop'), null, { timeout: 3000 });
-  const popY0 = await p.evaluate(() => { const e = document.querySelector('#pops .pop'); const m = e.getScreenCTM(); return { y: +e.getAttribute('y'), op: +getComputedStyle(e).opacity, bottom: m.d * (+e.getAttribute('y')) + m.f, txt: e.textContent, pe: getComputedStyle(e).pointerEvents }; });
-  const hitTop = (await topBox()).top;
-  await p.waitForTimeout(450);
-  const popY1 = await p.evaluate(() => { const e = document.querySelector('#pops .pop'); return e ? { y: +e.getAttribute('y'), op: +getComputedStyle(e).opacity } : null; });
-  check('Pop: its baseline starts above the top (does not cover it) and it ignores pointer events', popY0.bottom <= hitTop - 2 && popY0.pe === 'none', JSON.stringify({ bottom: popY0.bottom.toFixed(0), hitTop: hitTop.toFixed(0) }));
-  check('Pop: moves up and fades out', popY1 && popY1.y < popY0.y - 3 && popY1.op < popY0.op, JSON.stringify({ y0: popY0.y, y1: popY1 && popY1.y, o0: popY0.op, o1: popY1 && popY1.op }));
-  check('Pop does not block the next tap (the top is the element under its centre)', await p.evaluate(() => { const r = document.querySelector('#top .hit').getBoundingClientRect(); return document.elementFromPoint(r.left + r.width / 2, r.top + r.height * 0.55) === document.querySelector('#top .hit'); }));
-  await p.waitForTimeout(1500);
-  check('Pop is removed after it has faded', await p.locator('#pops .pop').count() === 0);
-
-  // ================= keyboard =================
-  const th0 = (await rd()).turns;
-  await p.evaluate(() => document.getElementById('top').focus({ focusVisible: true }));
-  await p.keyboard.press('Enter'); await p.waitForTimeout(1300);
-  await p.keyboard.press('Space'); await p.waitForTimeout(1300);
-  check('Enter and Space each add exactly one turn', (await rd()).turns === th0 + 2, String((await rd()).turns - th0));
-  await p.keyboard.down('Enter'); await p.keyboard.down('Enter'); await p.keyboard.down('Enter'); await p.keyboard.up('Enter'); await p.waitForTimeout(1300);
-  check('Holding Enter (auto-repeat) counts once', (await rd()).turns === th0 + 3, String((await rd()).turns - th0));
-
-  // ================= panel bindings =================
-  const timeOne = async () => { await startRec(); await tapMouse(); await p.waitForTimeout(2200); const rr = await stopRec(); const a = analyse(rr); return { ms: a.end - rr.s.find(x => x.th > rr.s[0].th + 0.01).t, a, rr }; };
-  await setRange('tp-turn', 300);
-  let one = await timeOne();
-  check('Turn duration 300 ms is applied (one tap ≈ 300 ms)', one.ms > 230 && one.ms < 420, one.ms.toFixed(0) + ' ms');
-  await setRange('tp-turn', 1500);
-  one = await timeOne();
-  check('Turn duration 1500 ms is applied (one tap ≈ 1500 ms)', one.ms > 1300 && one.ms < 1700, one.ms.toFixed(0) + ' ms');
-  await setRange('tp-turn', 900);
-  // easing strength: angle after 100 ms
-  const thAt = async pct => { await setRange('tp-ease', pct); await startRec(); await tapMouse(); await p.waitForTimeout(1500); const rr = await stopRec(); const s0 = rr.s.find(x => x.th > 0.01); return rr.s.find(x => x.t >= s0.t + 100).th - s0.th; };
-  const sharp = await thAt(0), soft = await thAt(100);
-  check('Easing strength 0 starts abruptly, 100 starts gently (angle after 100 ms: ' + sharp.toFixed(0) + '° vs ' + soft.toFixed(0) + '°)', sharp > soft * 3, sharp.toFixed(1) + ' / ' + soft.toFixed(1));
-  await setRange('tp-ease', 50);
-
-  // changing the turn duration during a spin: angle continuous, count exact
+  // ================= rapid taps: 3, 1, 7 with real mouse presses =================
   await startRec();
-  await tapMouse(); await tapMouse(); await tapMouse();
-  await p.waitForTimeout(500); await setRange('tp-turn', 1500);
-  await p.waitForTimeout(600); await setRange('tp-turn', 300);
-  await p.waitForTimeout(500); await setRange('tp-turn', 900);
-  const before3 = (await rd()).turns;
-  await p.waitForTimeout(4500);
-  rec = await stopRec(); A = analyse(rec);
-  const after3 = await rd();
-  check('Changing turn duration mid-spin keeps the angle continuous and the count exact (3 turns, no skip)', A.mono && A.maxStepDeg < 45 && A.consistent && after3.th % 360 === 0 && rec.counters.length === 3, JSON.stringify({ mono: A.mono, step: A.maxStepDeg.toFixed(1), n: rec.counters.length, th: after3.th }));
-  await p.waitForTimeout(300);
+  await taps(3, 12);
+  await waitEntered(1);
+  await waitIdle();
+  await p.waitForTimeout(200);
+  s = await stopRec();
+  A = analyse(s);
+  check('3 rapid taps → exactly 3 turns, popped number is 3 (not ahead of the rotation)', s.some(x => x.ft === '3') && Math.max(...s.map(x => x.th)) - s[0].th === 1080 && (await rd()).ent === '3', '');
+  check('Rapid taps: angle monotonic and smooth', A.mono && A.maxStep < 40, A.maxStep.toFixed(1));
+  // taps while the number is being shown
+  await taps(1, 0);                                             // slot 1 is not locked now (idle)
+  await waitEntered(2);
+  check('1 tap → slot 2 shows 1; slot 1 keeps 3 (not overwritten)', (await rd()).digits === '3|1|' && (await rd()).ent === '3,1', JSON.stringify(await rd()));
+  await waitIdle();
 
-  // pop settings
-  const popStats = async () => {
-    await p.evaluate(() => { if (window.__ppo) window.__ppo.disconnect(); window.__pp = []; const pops = document.getElementById('pops'); window.__ppo = new MutationObserver(m => m.forEach(x => x.addedNodes.forEach(n => { if (n.nodeType === 1) { const o = { t0: performance.now(), ys: [], size: n.getAttribute('font-size'), n }; window.__pp.push(o); (function tick() { if (!n.isConnected) { o.t1 = performance.now(); return; } o.ys.push(+n.getAttribute('y')); o.h = n.getBoundingClientRect().height; requestAnimationFrame(tick); })(); } }))).observe(pops, { childList: true }); });
-    await tapMouse(); await p.waitForTimeout(2200);
-    return p.evaluate(() => { const o = window.__pp[0]; return { life: o.t1 - o.t0, rise: o.ys[0] - Math.min(...o.ys), size: +o.size, h: o.h }; });
-  };
-  await setRange('tp-rise', 10); await setRange('tp-pop', 300); await setRange('tp-size', 20);
-  const small = await popStats();
-  await setRange('tp-rise', 60); await setRange('tp-pop', 1200); await setRange('tp-size', 64);
-  const big = await popStats();
-  check('Number rise distance 10 vs 60 px is applied (scene units)', near(small.rise, 10, 3) && near(big.rise, 60, 6), small.rise.toFixed(1) + ' / ' + big.rise.toFixed(1));
-  check('Number display time 300 vs 1200 ms is applied', near(small.life, 300, 130) && near(big.life, 1200, 160), small.life.toFixed(0) + ' / ' + big.life.toFixed(0));
-  check('Number size 20 vs 64 px is applied (font size and rendered height)', small.size === 20 && big.size === 64 && big.h > small.h * 2.5, small.size + '→' + big.size + ', h ' + small.h.toFixed(0) + '→' + big.h.toFixed(0));
-  await p.screenshot({ path: SH + 'top-big-pop.png' });
+  // ================= wrong third digit clears all three =================
+  await taps(5, 40);
+  await waitEntered(3);
+  await p.waitForTimeout(300);
+  check('Wrong last digit (5): "Wrong sequence. Try again." and the earlier 3 and 1 are shown first', (await p.locator('#msg').textContent()) === 'Wrong sequence. Try again.' && (await rd()).digits === '3|1|5');
+  await slotsCleared();
+  ent = await rd();
+  check('...then everything in step 4 is cleared and entry restarts at slot 1', ent.digits === '||' && ent.ent === '' && (await st()).stamps === '1110');
+
+  // ================= panel bindings (use one-tap rounds; every digit 1 here is wrong at slot 1, which is fine) =================
+  const oneRound = async () => { await startRec(); await taps(1, 0); await waitEntered(1); await p.waitForTimeout(300); const x = await stopRec(); await slotsCleared(); return x; };
+  const turnDur = x => { const a = first(x, y => y.th > x[0].th + 0.5), z = first(x, y => y.ph === 'waiting', a); return x[z].t - x[a].t; };
+  await setRange('tp-turn', 200);
+  let rec1 = await oneRound();
+  const d200 = turnDur(rec1);
+  await setRange('tp-turn', 900);
+  rec1 = await oneRound();
+  const d900 = turnDur(rec1);
+  check('Turn duration 200 ms and 900 ms are applied (one tap)', near(d200, 200, 90) && near(d900, 900, 130), d200.toFixed(0) + ' / ' + d900.toFixed(0) + ' ms');
+  await setRange('tp-turn', 600);
+  await setRange('tp-confirm', 700);
+  rec1 = await oneRound();
+  const pa = first(rec1, y => y.ph === 'waiting'), pb = first(rec1, y => y.ph === 'feedback', pa);
+  const c700 = rec1[pb].t - rec1[pa].t;
+  await setRange('tp-confirm', 1800);
+  rec1 = await oneRound();
+  const pc = first(rec1, y => y.ph === 'waiting'), pd = first(rec1, y => y.ph === 'feedback', pc);
+  const c1800 = rec1[pd].t - rec1[pc].t;
+  check('Pause to confirm 700 ms and 1800 ms are applied', near(c700, 700, 120) && near(c1800, 1800, 160), c700.toFixed(0) + ' / ' + c1800.toFixed(0) + ' ms');
+  await setRange('tp-confirm', 1000);
+  await setRange('tp-pop', 10);
+  rec1 = await oneRound();
+  const f10 = rec1.filter(y => y.fy !== null);
+  await setRange('tp-pop', 60);
+  rec1 = await oneRound();
+  const f60 = rec1.filter(y => y.fy !== null);
+  const rise = f => f[0].fy - Math.min(...f.map(y => y.fy));
+  check('Number pop height 10 vs 60 px is applied', near(rise(f10), 10, 3) && near(rise(f60), 60, 6), rise(f10).toFixed(1) + ' / ' + rise(f60).toFixed(1));
+  await setRange('tp-pop', 30);
+  await setRange('tp-feedback', 400);
+  rec1 = await oneRound();
+  const fb = x => { const a = first(x, y => y.ph === 'feedback'), z = first(x, y => nEnt(y.ent) === 1, a); return x[z].t - x[a].t; };
+  const fb400 = fb(rec1);
+  await setRange('tp-feedback', 1200);
+  rec1 = await oneRound();
+  const fb1200 = fb(rec1);
+  check('Number feedback time 400 ms and 1200 ms are applied', near(fb400, 400, 120) && near(fb1200, 1200, 150), fb400.toFixed(0) + ' / ' + fb1200.toFixed(0) + ' ms');
+  await p.screenshot({ path: SH + 'code-panel.png' });
+  await setRange('tp-feedback', 800);
+
+  // changing the turn duration mid-spin keeps the angle continuous and the turn count exact
+  await startRec();
+  await taps(3, 10);
+  await p.waitForTimeout(300); await setRange('tp-turn', 900);
+  await p.waitForTimeout(500); await setRange('tp-turn', 200);
+  await p.waitForTimeout(300); await setRange('tp-turn', 600);
+  await waitEntered(1);
+  s = await stopRec();
+  A = analyse(s);
+  const wRound = s[first(s, y => y.ph === 'waiting')].round;
+  check('Changing turn duration mid-spin: angle continuous, count exact (3 turns, digit 3)', A.mono && A.maxStep < 60 && wRound === 3 && s.some(y => y.ft === '3'), JSON.stringify({ step: A.maxStep.toFixed(1), round: wRound }));
+  await waitIdle();
+  // ...this entered a correct 3 in slot 1; keep going: 1 then 7 for the success run below
 
   // restore + copy
-  await setRange('tp-turn', 700); await setRange('tp-ease', 20); await setRange('tp-rise', 44); await setRange('tp-pop', 850); await setRange('tp-size', 52);
+  await setRange('tp-turn', 350); await setRange('tp-confirm', 1300); await setRange('tp-pop', 44); await setRange('tp-feedback', 650);
   await p.locator('#cp-copy').click(); await p.waitForTimeout(200);
   const clip = await p.evaluate(() => navigator.clipboard.readText());
-  const expected = ['Component: Top Spin Controls (Step 4 – spin the top)', 'Turn duration: 700 ms', 'Start/stop easing strength: 20 %', 'Number rise distance: 44 px', 'Number display time: 850 ms', 'Number size: 52 px', '',
+  const expected = ['Component: Top Spin Controls (Step 4 – spin the top to enter the code)', 'Turn duration: 350 ms', 'Pause to confirm: 1300 ms', 'Number pop height: 44 px', 'Number feedback time: 650 ms', '',
     'Apply these values as the prototype’s saved defaults. Retain the panel code for later adjustments. Commit and push the changes.'].join('\n');
-  check('Copy settings: component, all five values with units, exact instruction', clip === expected, JSON.stringify(clip));
+  check('Copy settings: component, all four values with units, exact instruction', clip === expected, JSON.stringify(clip));
   await p.locator('#cp-restore').click();
-  const rv = await p.evaluate(() => ['tp-turn', 'tp-ease', 'tp-rise', 'tp-pop', 'tp-size'].map(i => document.getElementById(i).value).join());
-  check('Restore defaults: 900 / 50 / 30 / 700 / 36', rv === '900,50,30,700,36', rv);
-  await p.waitForTimeout(500);
+  const rv = await p.evaluate(() => ['tp-turn', 'tp-confirm', 'tp-pop', 'tp-feedback'].map(i => document.getElementById(i).value).join());
+  check('Restore defaults: 600 / 1000 / 30 / 800', rv === '600,1000,30,800', rv);
 
-  // ================= completion is not connected =================
-  await p.evaluate(() => { for (let i = 0; i < 0; i++); });
+  // ================= full correct code: 3 (done), 1 (done above? check) then 7 =================
+  // slot 1 holds 3 from the mid-spin test; enter 1 with a single tap, then 7 with seven rapid taps
+  await taps(1, 0); await waitEntered(2); await waitIdle();
+  ent = await rd();
+  check('Slots hold 3 and 1 before the last digit', ent.digits === '3|1|', JSON.stringify(ent));
+  await p.evaluate(() => { window.__seq = []; const d = document.getElementById('paper'); new MutationObserver(() => { const v = d.dataset.step + ':' + d.dataset.phase; if (window.__seq[window.__seq.length - 1] !== v) window.__seq.push(v); }).observe(d, { attributes: true }); });
+  await startRec();
+  await taps(7, 12);
+  await waitEntered(3);
+  await p.waitForTimeout(300);
+  s = await stopRec();
+  const popped7 = s.some(y => y.ft === '7');
+  check('7 rapid taps → 7 turns → digit 7 in slot 3 (the number comes from the completed turns)', popped7 && (await rd()).digits === '3|1|7', JSON.stringify(await rd()));
+  const pulsed = s.some(y => /scale\(1\.0[1-9]/.test(y.sx || ''));
+  check('Success feedback: the three slots pulse together once', pulsed);
+  await p.screenshot({ path: SH + 'code-success.png' });
+  await p.waitForFunction(() => document.getElementById('paper').dataset.phase === 'ended', null, { timeout: 12000 });
+  const seq = await p.evaluate(() => window.__seq);
   state = await st();
-  check('No automatic completion: after many turns step 4 is still playing with no stamp 4', state.step === '4' && state.phase === 'playing' && state.stamps === '1110', JSON.stringify(state));
+  check('Only 3 → 1 → 7 completes step 4: stamp 4, "All steps completed", Start again', state.stamps === '1111' && (await p.locator('#ending-text').textContent()) === 'All steps completed' && await p.locator('#again').isVisible(), JSON.stringify(state));
+  check('Success fires once (4 completing → … → 4 ended, each once)', seq.filter(v => v === '4:completing').length === 1 && seq.filter(v => v === '4:ended').length === 1, seq.join(' > '));
+  await p.waitForTimeout(1500);
+  check('...and stays on the final state (no second completion)', (await st()).phase === 'ended' && (await p.evaluate(() => window.__seq)).filter(v => v === '4:completing').length === 1);
+  await p.screenshot({ path: SH + 'code-ended.png' });
+  await p.locator('#again').click(); await p.waitForTimeout(800);
+  check('Start again returns to a clean step 1', (await st()).step === '1' && (await st()).stamps === '0000' && await p.locator('.s4, .city-panel').count() === 0);
 
-  // ================= restart during a spin =================
-  await tapMouse(); await tapMouse(); await tapMouse(); await tapMouse(); await tapMouse();
-  await p.waitForTimeout(700);
+  // ================= Restart during a spin, and during the confirm countdown =================
+  await H.toStep4(p);
+  await taps(5, 20);
+  await p.waitForTimeout(500);
   const midSpin = await rd();
   await p.locator('#restart').click(); await p.waitForTimeout(300);
-  state = await st();
-  const rr1 = await rafCount(); await p.waitForTimeout(600);
-  check('Restart mid-spin: back to step 1, stamps cleared, no panel, no step-4 DOM', midSpin.q > 0 && state.step === '1' && state.stamps === '0000' && await p.locator('.s4, .city-panel').count() === 0, JSON.stringify(midSpin));
-  check('Restart mid-spin cancelled the animation loop (no callbacks afterwards)', (await rafCount()) === rr1);
+  const rA = await rafCount(); await p.waitForTimeout(700);
+  check('Restart mid-spin: back to step 1, step 4 DOM and panel removed, animation loop cancelled', midSpin.ph === 'spinning' && (await st()).step === '1' && await p.locator('.s4, .city-panel').count() === 0 && (await rafCount()) === rA, JSON.stringify(midSpin));
   await H.toStep4(p);
-  const fresh = await rd();
-  check('Back on step 4 after Restart: fresh state (0°, Turns: 0, nothing queued), no leftover pops', fresh.th === 0 && fresh.turns === 0 && fresh.q === 0 && fresh.c === 'Turns: 0' && await p.locator('#pops .pop').count() === 0, JSON.stringify(fresh));
-  await tapMouse(); await p.waitForTimeout(1500);
-  check('...and it spins normally again (one tap → one turn)', (await rd()).turns === 1);
+  const freshA = await rd();
+  check('Back on step 4: fresh state (0°, nothing queued, empty slots)', freshA.th === 0 && freshA.q === 0 && freshA.digits === '||' && freshA.ph === 'idle', JSON.stringify(freshA));
+  await taps(2, 20);
+  await p.waitForFunction(() => document.getElementById('top').dataset.phase === 'waiting', null, { timeout: 6000 });
+  await p.waitForTimeout(300);
+  await p.locator('#restart').click(); await p.waitForTimeout(300);
+  const rB = await rafCount(); await p.waitForTimeout(1600);
+  check('Restart during the confirm countdown: the countdown is cancelled (no loop, no stray confirmation)', (await rafCount()) === rB && (await st()).step === '1');
+  await H.toStep4(p);
+  await p.waitForTimeout(1800);
+  const freshB = await rd();
+  check('A cancelled countdown never fires later: step 4 starts empty and idle', freshB.ent === '' && freshB.digits === '||' && freshB.ph === 'idle' && freshB.th === 0, JSON.stringify(freshB));
 
   // ================= touch (separate context) =================
   const tctx = await b.newContext({ viewport: { width: 390, height: 800 }, hasTouch: true, isMobile: true });
@@ -270,16 +308,16 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   await tp.goto(URL); await tp.waitForTimeout(500);
   await H.toStep4(tp);
   const tbox = await tp.evaluate(() => { const r = document.querySelector('#top .hit').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height * 0.55, w: r.width, h: r.height }; });
-  check('Phone: panel collapsed by default and the top is easy to touch (≥ 90 × 150 px)', await tp.locator('.city-panel.is-collapsed').count() === 1 && tbox.w >= 90 && tbox.h >= 150, tbox.w.toFixed(0) + '×' + tbox.h.toFixed(0));
+  check('Phone: panel collapsed by default, top easy to touch (≥ 70 × 110 px)', await tp.locator('.city-panel.is-collapsed').count() === 1 && tbox.w >= 70 && tbox.h >= 110, tbox.w.toFixed(0) + '×' + tbox.h.toFixed(0));
   await tp.touchscreen.tap(tbox.x, tbox.y);
-  await tp.waitForTimeout(1500);
-  const tr = await tp.evaluate(() => { const t = document.getElementById('top'); return { turns: +t.dataset.turns, q: +t.dataset.queued }; });
-  check('One touch = exactly one turn (not counted twice)', tr.turns === 1 && tr.q === 0, JSON.stringify(tr));
+  await tp.waitForTimeout(900);
+  const t1 = await tp.evaluate(() => { const t = document.getElementById('top'); return { round: +t.dataset.round, q: +t.dataset.queued }; });
+  check('One touch = exactly one turn (not counted twice)', t1.round === 1 && t1.q === 0, JSON.stringify(t1));
   await tp.touchscreen.tap(tbox.x, tbox.y); await tp.waitForTimeout(150); await tp.touchscreen.tap(tbox.x, tbox.y);
-  await tp.waitForTimeout(2800);
-  const tr2 = await tp.evaluate(() => +document.getElementById('top').dataset.turns);
-  check('Two touches in quick succession = two turns', tr2 === 3, String(tr2));
-  await tp.screenshot({ path: SH + 'top-phone.png' });
+  await tp.waitForTimeout(2200);
+  const t3 = await tp.evaluate(() => +document.getElementById('top').dataset.round);
+  check('Two more touches in quick succession = 2 more turns in the same round (3 total)', t3 === 3, String(t3));
+  await tp.screenshot({ path: SH + 'code-phone.png' });
   check('Phone: no horizontal scroll', !(await tp.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)));
   await tctx.close();
 

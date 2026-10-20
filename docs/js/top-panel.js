@@ -9,7 +9,7 @@
       return TuningPanel.mount({
         title: 'Top Spin Controls',
         model: M,
-        fields: [f('turnMs', 'tp-turn'), f('easePct', 'tp-ease'), f('risePx', 'tp-rise'), f('popMs', 'tp-pop'), f('sizePx', 'tp-size')]
+        fields: [f('turnMs', 'tp-turn'), f('confirmMs', 'tp-confirm'), f('popPx', 'tp-pop'), f('feedbackMs', 'tp-feedback')]
       });
     }
   };

@@ -125,24 +125,40 @@ function check(name,ok,extra){results.push([ok,name,extra||'']);console.log((ok?
   await waitPhase('playing','4');
   s=await st();
   check('Auto-advance to step 4; stamps 1-3 persist',s.label==='Step 4 of 4'&&s.stamps==='1110'&&s.scenes==='scene-root s4'&&s.prog==='done,done,done,current',JSON.stringify(s));
-  check('Step 4 hint is "Tap the top to spin. Each full turn reveals a number."',s.hint==='Tap the top to spin. Each full turn reveals a number.',s.hint);
+  check('Step 4 hint is "Tap to spin. Pause to reveal each number."',s.hint==='Tap to spin. Pause to reveal each number.',s.hint);
   check('Same paper after step 4',await samePaper());
   await p.waitForTimeout(600); await p.screenshot({path:SH+'s4.png'});
 
-  // ---- STEP 4: tap the top (the completion rule is intentionally not connected yet)
-  check('S4: old clock and number marks are gone, top at rest with Turns: 0',await p.locator('.s4 .mark, .s4 #marks').count()===0&&(await p.locator('#counter').textContent())==='Turns: 0'&&(await p.locator('#top').getAttribute('data-theta'))==='0.000');
-  await p.locator('#top .hit').click({force:true});
-  await p.waitForTimeout(1700);
+  // ---- STEP 4: spin the top to enter 3 -> 1 -> 7 (clock 3:17 is the clue)
+  check('S4: clock 3:17, three empty slots, the top; old number buttons gone',await p.locator('.s4 [aria-label="Clock showing 3:17"]').count()===1&&await p.locator('.s4 .slot').count()===3&&(await p.locator('#scene').getAttribute('data-entered'))===''&&await p.locator('.s4 .mark, .s4 #marks').count()===0);
+  await H.enterDigit(p,2);                      // wrong first digit (2 instead of 3)
+  await p.waitForTimeout(200);
+  check('S4 wrong digit: "Wrong sequence. Try again." shown',(await p.locator('#msg').textContent())==='Wrong sequence. Try again.'&&await p.locator('#msg.show').count()===1);
+  await p.waitForTimeout(1500);
   s=await st();
-  check('S4: one tap = one full turn (Turns: 1), step 4 does not auto-complete (no old 3-1-7 logic)',(await p.locator('#counter').textContent())==='Turns: 1'&&(await p.locator('#top').getAttribute('data-theta'))==='360.000'&&s.step==='4'&&s.phase==='playing'&&s.stamps==='1110',JSON.stringify(s));
-  await p.screenshot({path:SH+'s4-one-turn.png'});
+  check('S4 wrong digit: slots cleared, still step 4, stamps 1-3 kept',(await p.locator('#scene').getAttribute('data-entered'))===''&&s.step==='4'&&s.phase==='playing'&&s.stamps==='1110'&&s.scenes==='scene-root s4',JSON.stringify(s));
+  await H.enterDigit(p,3); await p.waitForTimeout(500); await H.enterDigit(p,1); await p.waitForTimeout(500);
+  s=await st();
+  check('S4: 3 then 1 entered correctly, step 4 still playing (code incomplete)',(await p.locator('#scene').getAttribute('data-entered'))==='3,1'&&s.phase==='playing'&&s.stamps==='1110');
+  await H.enterDigit(p,7);
+  await waitPhase('completing','4',8000);
+  s=await st();
+  check('S4 success (3,1,7): stamp 4 + Completed',s.stamps==='1111'&&s.status==='completed',JSON.stringify(s));
+  await waitPhase('ended','4');
+  s=await st();
+  const endTxt=await p.locator('#ending-text').textContent();
+  check('Ending: "All steps completed" visible with 4 stamps',endTxt==='All steps completed'&&s.status==='ended'&&s.stamps==='1111'&&s.prog==='done,done,done,done',JSON.stringify(s));
+  check('Ending: "Start again" button visible',await p.locator('#again').isVisible()&&await p.locator('#again').textContent()==='Start again');
+  check('Ending: same paper',await samePaper());
+  await p.screenshot({path:SH+'end.png'});
 
-  // ---- Restart from step 4 => step 1, clean
-  await p.locator('#restart').click(); await p.waitForTimeout(900);
+  // ---- Start again => step 1, clean
+  await p.locator('#again').click(); await p.waitForTimeout(900);
   s=await st();
-  check('Restart from step 4: back to step 1, stamps cleared, only s1 mounted, no panel',s.label==='Step 1 of 4'&&s.stamps==='0000'&&s.scenes==='scene-root s1'&&s.prog==='current,locked,locked,locked'&&s.status==='none'&&await p.locator('.city-panel').count()===0,JSON.stringify(s));
-  check('Restart: fresh step 1 inputs (no frames on, clock closed)',await p.locator('.s1 .frame.on').count()===0&&await p.locator('.s1 .clock.open').count()===0);
-  check('Restart: same paper',await samePaper());
+  check('Start again: back to step 1, stamps cleared, only s1 mounted',s.label==='Step 1 of 4'&&s.stamps==='0000'&&s.scenes==='scene-root s1'&&s.prog==='current,locked,locked,locked'&&s.status==='none',JSON.stringify(s));
+  check('Start again: fresh step 1 inputs (no frames on, clock closed)',await p.locator('.s1 .frame.on').count()===0&&await p.locator('.s1 .clock.open').count()===0);
+  check('Start again: ending hidden',!(await p.locator('#again').isVisible()));
+  check('Start again: same paper',await samePaper());
 
   // ---- global Restart from step 2 with a stamp
   for(const i of [2,3,1]) await press('.s1 .frame:nth-child('+i+')');
