@@ -123,7 +123,11 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   const midWait = await rd();
   await taps(1, 0);                                            // extends the current round
   await waitEntered(2);
-  await p.waitForTimeout(1100);                                // keep recording through the error feedback
+  await p.waitForTimeout(150);                                 // the error feedback is on screen now
+  const dTap = await rd();
+  await taps(1, 0); await p.waitForTimeout(100);
+  const dTap2 = await rd();
+  await p.waitForTimeout(1000);                                // keep recording through the rest of the feedback
   s = await stopRec();
   const iw2 = first(s, x => x.ph === 'waiting'), ic2 = first(s, x => x.ph === 'feedback');
   const second = first(s, x => x.ph === 'spinning', iw2);
@@ -134,9 +138,7 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   const sh = s.filter(x => x.msg).map(x => /translate\(([\d.]+)/.exec(x.sx)).filter(Boolean).map(m => +m[1]);
   check('Wrong digit: slots shake (not colour alone)', Math.max(...sh) - Math.min(...sh) > 2, (Math.max(...sh) - Math.min(...sh)).toFixed(1));
   await p.screenshot({ path: SH + 'code-wrong.png' });
-  const dTap = await rd();
-  await taps(1, 0); await p.waitForTimeout(100);
-  check('Taps during the error feedback are ignored', (await rd()).q === dTap.q && (await rd()).round === dTap.round);
+  check('Taps during the error feedback are ignored (nothing queued, round unchanged)', dTap.ph === 'feedback' && dTap2.q === dTap.q && dTap2.round === dTap.round && dTap2.ph === 'feedback', JSON.stringify([dTap, dTap2]));
   await slotsCleared();
   ent = await rd(); state = await st();
   check('After the error all three slots, the round and the queue are cleared; steps 1-3 and stamps untouched; still step 4', ent.digits === '||' && ent.ent === '' && ent.q === 0 && ent.round === 0 && state.step === '4' && state.stamps === '1110', JSON.stringify(ent));
@@ -159,6 +161,7 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   const r1 = await rafCount(); await p.waitForTimeout(1000); const r2 = await rafCount();
   check('Only one animation loop while spinning (≈ one callback per frame)', r2 - r1 > 30 && r2 - r1 < 80, String(r2 - r1));
   await waitEntered(1); await slotsCleared();
+  await p.waitForTimeout(700);                                  // the short "ready" highlight after a reset ends
   const r3 = await rafCount(); await p.waitForTimeout(800);
   check('No loop left running once the round is finished and the top is idle', (await rafCount()) === r3);
 
