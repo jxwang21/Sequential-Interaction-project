@@ -325,7 +325,8 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
 
   // ---- several fingers at once (real two-point touches through the DevTools protocol)
   const cdp = await tctx.newCDPSession(tp);
-  const sent = () => tp.evaluate(() => { const t = document.getElementById('top'); return +t.dataset.round + +t.dataset.queued; });   // turns requested this round
+  // turns requested this round = completed + remaining, where the remaining part is fractional while a turn is under way, so round up
+  const sent = () => tp.evaluate(() => { const t = document.getElementById('top'); return Math.ceil(+t.dataset.round + +t.dataset.queued - 1e-6); });
   const touch = async (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts });
   const base0 = await sent();
   await touch('touchStart', [{ x: tbox.x - 14, y: tbox.y, id: 1 }, { x: tbox.x + 14, y: tbox.y - 10, id: 2 }]);
