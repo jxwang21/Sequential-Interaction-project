@@ -52,6 +52,15 @@ Panel shown only on step 4: turn duration (200–900 ms, default 600), pause to 
 
 `docs/css/hifi.css` (loaded last) restyles the whole prototype without touching layout or behaviour: graphite paper with grain and light, brushed-metal tiles, buttons and frames, engraved slots, a brass accent for keys, locks, lit marks and stamps (rubber-stamp ink texture), warm-white type in Jost (300/400/500, bundled). Shared gradients and the ink filter are defined once at the top of `docs/index.html` (`hf-*`). To retune the accent change `--accent`, `--accent-light` and `--accent-deep` at the top of `hifi.css`. To see the prototype without the tuning panels (presentation or screenshots) add `?clean` to the address, for example `index.html?clean`.
 
+## Opening and ending animation (`docs/js/awake.js`)
+
+One brass eye bookends the experience.
+
+- **Opening (page load, ~3.5 s):** the paper is dark; a thread of light grows across and breathes twice like someone asleep; the light spreads, the darkness lifts and step 1 appears. Step 1 cannot be used until it is over. Click the paper to skip ahead.
+- **Ending (after step 4, ~5 s):** the paper dims, the thread of light breathes, the eyelid opens slowly (the same eye as the third frame of step 1), the iris catches the light, the pupil contracts, a flood of light washes over the paper and the paper keeps a warm glow. Then "All steps completed" and **Start again**. Click the paper to skip ahead; Restart works at any moment.
+- Restart and Start again go straight to step 1 without the opening. With `prefers-reduced-motion` both animations are replaced by a plain fade.
+- To watch the ending without solving anything open `index.html#awake` (on the artifact add `#awake` to the link). `index.html?nointro` skips the opening (used by the tests). Timings live in the `TIMELINES` table at the top of `awake.js`.
+
 ## Repository layout
 
 ```
@@ -63,6 +72,7 @@ docs/                    <- the published site (GitHub Pages source)
   js/app.js              <- sequence controller (unlock, stamps, transitions, restart)
   js/city-motion.js      <- Step 2 motion settings (defaults, limits, easings)
   js/city-panel.js       <- "City Motion Controls" panel (Step 2 only)
+  js/awake.js            <- the eye animation: opening on load, ending after step 4
   js/tuning-panel.js     <- generic panel used by both tuning panels
   js/letter-motion.js    <- Step 3 interaction settings (defaults, limits, easings)
   js/letter-panel.js     <- "Letter Interaction Controls" panel (Step 3 only)

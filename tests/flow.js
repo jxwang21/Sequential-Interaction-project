@@ -4,7 +4,7 @@
 const { chromium } = require('playwright');
 const H = require('./helpers');
 const SH=(process.env.SHOTS||'.')+'/';
-const URL=process.argv[2]||'http://localhost:8123/index.html';  // serve /docs first, e.g. python3 -m http.server 8123 --directory docs
+const URL=process.argv[2]||'http://localhost:8123/index.html?nointro';  // serve /docs first, e.g. python3 -m http.server 8123 --directory docs
 const results=[];
 function check(name,ok,extra){results.push([ok,name,extra||'']);console.log((ok?'PASS ':'FAIL ')+name+(extra?'  -> '+extra:''));}
 (async()=>{

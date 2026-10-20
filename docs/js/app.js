@@ -32,6 +32,9 @@
   var phase = 'playing';
   var current = null;   // mounted scene instance
   var timers = [];
+  var awakeRun = null;   // the running eye animation (intro or finale), if any
+  var PREVIEW = /(^|[#&])awake($|&)/.test(location.hash);    // index.html#awake opens on the finale of step 4
+  var NO_INTRO = /[?&]nointro(&|=|$)/.test(location.search);   // index.html?nointro skips the opening animation
 
   function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
   function clearTimers() { timers.forEach(clearTimeout); timers = []; }
@@ -111,28 +114,68 @@
           mountStep(i + 1, myGen);
         }, FADE_OUT);
       } else {
-        // last step: the scene stays on the paper (the top keeps spinning)
-        setPhase('ended');
-        renderHeader();
-        endingText.textContent = 'All steps completed';
-        setStatus('ended');
+        // last step: the eye opens and the paper lights up (js/awake.js), then the ending
+        setPhase('awakening');
+        setStatus('none');
+        hint.textContent = '';
+        awakeRun = window.Awake.play(paper, {
+          mode: 'finale',
+          onDone: function () {
+            awakeRun = null;
+            if (myGen !== gen) return;
+            setPhase('ended');
+            renderHeader();
+            endingText.textContent = 'All steps completed';
+            setStatus('ended');
+          }
+        });
       }
     }, COMPLETED_HOLD);
   }
 
-  function start() {
+  function cancelAwake() {
+    if (awakeRun) { awakeRun.cancel(); awakeRun = null; }
+    host.inert = false;
+    paper.classList.remove('awake');
+  }
+
+  // the opening: the paper is dark, a thread of light breathes like someone asleep, then step 1 appears
+  function playIntro(myGen) {
+    setPhase('intro');
+    host.inert = true;                 // step 1 cannot be used until the light has spread
+    awakeRun = window.Awake.play(paper, {
+      mode: 'intro',
+      onDone: function () {
+        awakeRun = null;
+        host.inert = false;
+        if (myGen !== gen) return;
+        setPhase('playing');
+      }
+    });
+  }
+
+  function start(opts) {
+    opts = opts || {};
     gen++;
     clearTimers();
+    cancelAwake();
     destroyScene();
     stamps.forEach(function (s, k) {
       s.classList.remove('on');
       s.setAttribute('aria-label', 'Step ' + (k + 1) + ' stamp, not yet earned');
     });
-    mountStep(0, gen);
+    if (opts.preview) {
+      for (var k = 0; k < 3; k++) { stamps[k].classList.add('on'); stamps[k].setAttribute('aria-label', 'Step ' + (k + 1) + ' stamp, earned'); }
+      window.__awakePreview = true;    // step 4 enters the code by itself and completes
+      mountStep(3, gen);
+    } else {
+      mountStep(0, gen);
+      if (opts.intro) playIntro(gen);
+    }
   }
 
-  document.getElementById('restart').addEventListener('click', start);
-  again.addEventListener('click', start);
+  document.getElementById('restart').addEventListener('click', function () { start(); });
+  again.addEventListener('click', function () { start(); });
 
-  start();
+  start({ intro: !PREVIEW && !NO_INTRO, preview: PREVIEW });
 })();

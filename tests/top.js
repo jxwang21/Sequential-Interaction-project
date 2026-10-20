@@ -4,7 +4,7 @@
 const { chromium } = require('playwright');
 const H = require('./helpers');
 const SH = (process.env.SHOTS || '.') + '/';
-const URL = process.argv[2] || 'http://localhost:8123/index.html';
+const URL = process.argv[2] || 'http://localhost:8123/index.html?nointro';
 const results = [];
 function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 'FAIL ') + name + (extra ? '  -> ' + extra : '')); }
 const near = (a, b, tol) => Math.abs(a - b) <= tol;
@@ -272,7 +272,7 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   const pulsed = s.some(y => /scale\(1\.0[1-9]/.test(y.sx || ''));
   check('Success feedback: the three slots pulse together once', pulsed);
   await p.screenshot({ path: SH + 'code-success.png' });
-  await p.waitForFunction(() => document.getElementById('paper').dataset.phase === 'ended', null, { timeout: 12000 });
+  await p.waitForFunction(() => document.getElementById('paper').dataset.phase === 'ended', null, { timeout: 25000 });
   const seq = await p.evaluate(() => window.__seq);
   state = await st();
   check('Only 3 → 1 → 7 completes step 4: stamp 4, "All steps completed", Start again', state.stamps === '1111' && (await p.locator('#ending-text').textContent()) === 'All steps completed' && await p.locator('#again').isVisible(), JSON.stringify(state));

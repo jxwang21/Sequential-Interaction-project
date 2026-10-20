@@ -296,3 +296,34 @@ li[data-state="done"] .node {
   .stage-host, .stage-host.is-out { transition-duration: .01s !important; }
   .stamp.on, .status[data-mode="completed"] .badge { animation-duration: .01s !important; }
 }
+
+/* ---------------- the eye animation (js/awake.js): intro on load, finale after step 4 ---------------- */
+.paper > .awake { position: absolute; inset: 0; z-index: 20; border-radius: inherit; overflow: hidden; pointer-events: none; }
+.paper > .awake.intro { pointer-events: auto; cursor: pointer; }      /* the intro blocks the paper; a click skips ahead */
+.awake-dim { position: absolute; inset: 0; opacity: 0; background: radial-gradient(ellipse at 50% 44%, rgba(12, 12, 14, .74) 0%, rgba(4, 4, 5, .98) 78%); }
+.awake.intro .awake-dim { background: radial-gradient(ellipse at 50% 44%, rgba(10, 10, 12, .985) 0%, rgba(3, 3, 4, 1) 80%); }   /* the opening is complete darkness */
+.awake-bloom {
+  position: absolute; left: 50%; top: 44%; width: 150%; aspect-ratio: 1; border-radius: 50%;
+  transform: translate(-50%, -50%) scale(.5); opacity: 0; mix-blend-mode: screen;
+  background: radial-gradient(closest-side, rgba(255, 246, 214, .95), rgba(243, 222, 166, .55) 28%, rgba(214, 178, 102, .2) 55%, rgba(214, 178, 102, 0) 75%);
+}
+.awake-svg { position: absolute; left: 50%; top: 44%; width: min(92%, 600px); height: auto; transform: translate(-50%, -50%); overflow: visible; }
+
+/* after the finale the paper keeps a warm light and gently breathes */
+.paper.awake {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .14), inset 0 0 0 1px rgba(0, 0, 0, .5), inset 0 -30px 60px rgba(0, 0, 0, .2),
+    0 0 90px rgba(214, 178, 102, .1), 0 24px 60px rgba(0, 0, 0, .65), 0 6px 14px rgba(0, 0, 0, .5);
+  transition: box-shadow 1.2s ease;
+}
+.paper.awake::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(120% 62% at 50% 6%, rgba(255, 236, 180, .14), transparent 62%);
+  animation: hf-breathe 7s ease-in-out infinite;
+}
+@keyframes hf-breathe { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+.paper.awake .stage-host { filter: brightness(1.07); }
+.paper.awake .stamp.on { filter: url(#hf-ink) drop-shadow(0 0 10px rgba(214, 178, 102, .55)); }
+.paper.awake .step-label::before { box-shadow: 0 0 16px rgba(214, 178, 102, .9); }
+.paper.awake li[data-state="done"] .node { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 0 14px rgba(214, 178, 102, .55); }
+@media (prefers-reduced-motion: reduce) { .paper.awake::after { animation: none; } }

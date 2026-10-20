@@ -3,7 +3,7 @@
    Needs `playwright` and a Chromium (CHROME=/path/to/chrome if not auto-detected). */
 const { chromium } = require('playwright');
 const SH = (process.env.SHOTS || '.') + '/';
-const URL = process.argv[2] || 'http://localhost:8123/index.html';
+const URL = process.argv[2] || 'http://localhost:8123/index.html?nointro';
 const results = [];
 function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 'FAIL ') + name + (extra ? '  -> ' + extra : '')); }
 

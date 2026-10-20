@@ -4,7 +4,7 @@
 const { chromium } = require('playwright');
 const H = require('./helpers');
 const SH = (process.env.SHOTS || '.') + '/';
-const URL = process.argv[2] || 'http://localhost:8123/index.html';
+const URL = process.argv[2] || 'http://localhost:8123/index.html?nointro';
 const results = [];
 function check(name, ok, extra) { results.push(ok); console.log((ok ? 'PASS ' : 'FAIL ') + name + (extra ? '  -> ' + extra : '')); }
 

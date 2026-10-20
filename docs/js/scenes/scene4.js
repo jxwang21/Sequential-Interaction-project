@@ -344,6 +344,15 @@
       });
       topEl.addEventListener('blur', function () { if (presses.key) { delete presses.key; ensureLoop(); } });
 
+      // review shortcut (index.html#awake): the code is already entered and the step completes by itself
+      if (window.__awakePreview) {
+        window.__awakePreview = false;
+        entered = CODE.slice();
+        entered.forEach(function (n, k) { slotText[k].textContent = String(n); slotRect[k].setAttribute('data-digit', n); });
+        locked = true; phase = 'feedback';
+        after(900, function () { doneSent = true; api.complete(); });
+      }
+
       draw(performance.now());
 
       return {
